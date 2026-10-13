@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Wardrobe IQ{% endblock %} — Your Closet, Smarter Everyday</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👔</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-symbol">IQ</div>
+        <div class="brand-text">
+          <h1>Wardrobe IQ</h1>
+          <span>Smart Wardrobe</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- MY WARDROBE -->
+        <div class="nav-group-title">My Wardrobe</div>
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="{{ url_for('closet.index') }}" class="nav-link {% if request.endpoint and 'closet' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.5a2 2 0 0 0 2 1.67H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10.86h1.14a2 2 0 0 0 2-1.67l.58-3.5a2 2 0 0 0-1.34-2.23z"/></svg>
+          Digital Closet
+        </a>
+        <a href="{{ url_for('laundry.index') }}" class="nav-link {% if request.endpoint and 'laundry' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Laundry & Availability
+        </a>
+
+        <!-- STYLE & PLAN -->
+        <div class="nav-group-title">Style & Plan</div>
+        <a href="{{ url_for('studio.index') }}" class="nav-link {% if request.endpoint and 'studio' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Smart Outfit Studio
+        </a>
+        <a href="{{ url_for('weekly_planner.index') }}" class="nav-link {% if request.endpoint and 'weekly_planner' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>
+          Weekly Outfit Planner
+        </a>
+        <a href="{{ url_for('fashion_lab.index') }}" class="nav-link {% if request.endpoint and 'fashion_lab' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+          AI Fashion Lab
+        </a>
+
+        <!-- DISCOVER -->
+        <div class="nav-group-title">Discover</div>
+        <a href="{{ url_for('shopping.index') }}" class="nav-link {% if request.endpoint and 'shopping' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Shopping Companion
+        </a>
+        <a href="{{ url_for('trends.index') }}" class="nav-link {% if request.endpoint and 'trends' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          Live Fashion Trends
+        </a>
+
+        <!-- SPECIAL EXPERIENCES -->
+        <div class="nav-group-title">Special Experiences</div>
+        <a href="{{ url_for('packing.index') }}" class="nav-link {% if request.endpoint and 'packing' in request.endpoint %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Pack Your Bags
+        </a>
+      </nav>
+
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+          <div class="user-meta">
+            <div class="user-name">{{ current_user.username }}</div>
+            <div class="user-badge">{{ user_level.level_name if user_level else 'Member' }}</div>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" title="Logout" style="color: var(--color-muted-taupe);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </aside>
+
+    <!-- MAIN APP AREA -->
+    <main class="app-main">
+      <!-- TOPBAR -->
+      <header class="app-topbar">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="topbar-pill-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="topbar-breadcrumbs">
+            <span>Wardrobe IQ</span>
+            <span>/</span>
+            <span class="current">{% block page_title %}Overview{% endblock %}</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Calendar Shortcut -->
+          <a href="{{ url_for('studio.index') }}#calendar" class="topbar-pill-btn" title="Wear Calendar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Calendar</span>
+          </a>
+
+          <!-- Fashion Points Shortcut -->
+          <a href="{{ url_for('points.index') }}" class="topbar-pill-btn points-pill" title="Fashion Points & Milestones">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-deep-forest)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            <span><strong>{{ user_points or 0 }}</strong> pts</span>
+          </a>
+
+          {% if current_user.is_authenticated %}
+          <!-- Sign Out Shortcut -->
+          <a href="{{ url_for('auth.logout') }}" class="topbar-pill-btn" title="Sign Out of Wardrobe IQ" style="color: var(--color-terracotta);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Sign Out</span>
+          </a>
+          {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Sign In</a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- CONTENT WRAPPER -->
+      <div class="page-container">
+        <!-- Flash notifications -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                  <span>{{ message }}</span>
+                  <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; color:inherit;">✕</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- FLOATING AI FASHION CHATBOT -->
+  <div class="floating-chatbot" id="fashionChatbot">
+    <div class="chatbot-window" id="chatbotWindow">
+      <div class="chatbot-header">
+        <div class="chatbot-title">
+          <div class="chatbot-status-dot"></div>
+          <h4>AI Fashion Stylist</h4>
+        </div>
+        <div class="chatbot-header-actions" style="display:flex; align-items:center; gap:8px;">
+          <button type="button" id="resetChatbotBtn" title="Start new conversation" onclick="resetChatConversation()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:var(--color-warm-ivory); font-size:0.75rem; border-radius:4px; padding:3px 8px; cursor:pointer; font-weight:500;">New Chat</button>
+          <button type="button" id="closeChatbotBtn" style="background:none; border:none; color:var(--color-warm-ivory); font-size:1.1rem; cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div class="chatbot-messages" id="chatMessages">
+        <div class="chat-bubble bot">
+          Hello! I'm your personal AI stylist for Wardrobe IQ. You can ask me <em>any</em> open-ended styling question about your pieces, occasion looks, 2026 trends, capsule packing, or silhouette advice!
+        </div>
+        <div class="chat-suggestions">
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('What should I wear to my cousin\'s engagement?')">Cousin's engagement</button>
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('I have a black shirt. What can I pair it with?')">Pair black shirt</button>
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('How can I make my outfit look more elegant?')">More elegant styling</button>
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('What fashion colours are trending this season?')">2026 Trend colours</button>
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('I am travelling for three days. Help me plan outfits.')">3-day travel plan</button>
+          <button class="chat-tag-btn" onclick="sendQuickPrompt('Why does this outfit combination work?')">Why outfits work</button>
+        </div>
+      </div>
+      <form class="chatbot-input-bar" id="chatbotForm" onsubmit="handleChatSubmit(event)">
+        <input type="text" id="chatInput" class="chatbot-input" placeholder="Ask your stylist..." autocomplete="off">
+        <button type="submit" class="chatbot-send-btn" title="Send message">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+    <button class="chatbot-toggle-btn" id="toggleChatbotBtn" title="Chat with your AI stylist" aria-label="Open AI Fashion Chatbot">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

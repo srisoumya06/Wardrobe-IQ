@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Shopping Companion — Wardrobe IQ{% endblock %}
+{% block page_title %}Shopping Companion{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 24px;">
+  <div class="page-header-text">
+    <h1 style="color: var(--color-deep-forest); margin-bottom: 4px;">Shopping Companion</h1>
+    <p class="page-subtitle" style="margin: 0;">Shop intentionally to fill genuine closet gaps. Prevent duplicate purchases and maximize your existing wardrobe.</p>
+  </div>
+  <div style="font-size: 0.82rem; color: var(--color-muted-taupe); align-self: center;">
+    Currency: <strong>Indian Rupee (₹)</strong> • {{ rate_source }}
+  </div>
+</div>
+
+<!-- 1. AUTOMATICALLY PERSONALIZED WARDROBE FOCUS BAR (No manual gender buttons) -->
+<div class="iq-card" style="padding: 14px 20px; margin-bottom: 24px; background-color: var(--color-surface-subtle); border: 1px solid var(--color-soft-beige); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <span style="font-size: 0.82rem; text-transform: uppercase; font-weight: 700; color: var(--color-muted-taupe); letter-spacing: 0.05em;">
+      Personalized Focus:
+    </span>
+    <span class="badge {% if active_department == 'womens' %}badge-sage{% elif active_department == 'mens' %}badge-forest{% else %}badge-beige{% endif %}" style="font-size: 0.85rem; font-weight: 600; padding: 5px 12px;">
+      {% if active_department == 'womens' %}
+        👗 Women's / Girls'
+      {% elif active_department == 'mens' %}
+        👔 Men's / Boys'
+      {% else %}
+        🌐 All / Mixed
+      {% endif %}
+    </span>
+    <span class="badge badge-beige" style="font-size: 0.74rem;">
+      {% if gap_data.department_source %}
+      ✓ {{ gap_data.department_source }}
+      {% else %}
+      ✓ Personalized Closet Audit
+      {% endif %}
+    </span>
+  </div>
+
+  <div style="font-size: 0.80rem; color: var(--color-muted-taupe);">
+    Tailored automatically from your Digital Closet inventory & preferences
+  </div>
+</div>
+
+<!-- 2. AMBIGUOUS / MISSING PREFERENCE ONBOARDING CARD (When closet has no gendered items & no preference saved) -->
+{% if gap_data.is_ambiguous and not (user_preference and user_preference.gender_preference) %}
+<div class="iq-card" style="padding: 24px 28px; margin-bottom: 24px; background-color: #FAF4E9; border-left: 4px solid var(--color-terracotta);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+    <h3 style="font-size: 1.15rem; color: var(--color-charcoal); margin: 0;">🎯 Personalize Your Shopping Department</h3>
+    <span class="badge badge-beige">Action Recommended</span>
+  </div>
+  <p style="font-size: 0.88rem; color: var(--color-charcoal); margin: 4px 0 16px 0; line-height: 1.5;">
+    Your Digital Closet currently contains neutral foundational pieces (or is just starting out). Select your shopping preference so we can prioritize matching items and wardrobe gaps accurately:
+  </p>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <form method="POST" action="{{ url_for('shopping.set_preference') }}" style="margin: 0;">
+      <input type="hidden" name="department" value="womens">
+      <button type="submit" class="btn btn-primary btn-sm">👗 Prioritize Women's / Girls'</button>
+    </form>
+    <form method="POST" action="{{ url_for('shopping.set_preference') }}" style="margin: 0;">
+      <input type="hidden" name="department" value="mens">
+      <button type="submit" class="btn btn-primary btn-sm">👔 Prioritize Men's / Boys'</button>
+    </form>
+    <form method="POST" action="{{ url_for('shopping.set_preference') }}" style="margin: 0;">
+      <input type="hidden" name="department" value="unisex">
+      <button type="submit" class="btn btn-secondary btn-sm">🌐 Gender-Neutral / All</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- 3. WARDROBE GAP ADVISORY BANNER -->
+<div class="iq-card" style="padding: 24px 28px; margin-bottom: 24px; background-color: #FAF6F0; border-left: 4px solid var(--color-deep-forest);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+    <h3 style="font-size: 1.25rem; color: var(--color-deep-forest); margin: 0;">Wardrobe Gap Advisory</h3>
+    <span class="badge badge-sage">Personalized Audit</span>
+  </div>
+  <p style="font-size: 0.90rem; color: var(--color-charcoal); margin-bottom: 12px;">
+    Before investing in new clothes, our analysis checks your actual wardrobe inventory to ensure every recommended purchase expands your outfit pairing potential:
+  </p>
+  <ul style="padding-left: 20px; font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.6; margin-bottom: 0;">
+    {% for gap in gaps %}
+    <li>{{ gap }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- 4. TRANSPARENCY NOTICE (Currency & API Configuration) -->
+<div class="alert alert-info" style="margin-bottom: 24px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+  <div>
+    <strong>Catalog Source:</strong> 
+    {% if is_api_configured %}
+    Live external shopping feed connected.
+    {% else %}
+    Verified curated capsule collection from official brand partners (Reformation, Uniqlo, Mango, Levi's, Amazon Fashion). <em>No external shopping API key configured in .env.</em>
+    {% endif %}
+  </div>
+  <span class="badge badge-beige">1 USD = ₹{{ "%.2f"|format(rate) }} ({{ rate_source }})</span>
+</div>
+
+<!-- 5. COMPREHENSIVE FILTER BAR -->
+<div class="iq-card" style="padding: 18px 20px; margin-bottom: 28px; background-color: #FFFFFF; border: 1px solid var(--color-soft-beige);">
+  <form method="GET" action="{{ url_for('shopping.index') }}" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+    <input type="hidden" name="department" value="{{ active_department }}">
+
+    <!-- Category Filter -->
+    <div style="flex: 1; min-width: 140px;">
+      <select name="category" class="form-select" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        <option value="Clothing" {% if active_cat == 'Clothing' %}selected{% endif %}>Clothing (All)</option>
+        <option value="Tops" {% if active_cat == 'Tops' %}selected{% endif %}>Tops</option>
+        <option value="Bottoms" {% if active_cat == 'Bottoms' %}selected{% endif %}>Bottoms</option>
+        <option value="Dresses / One-piece" {% if active_cat == 'Dresses / One-piece' %}selected{% endif %}>Dresses / One-piece</option>
+        <option value="Footwear" {% if active_cat == 'Footwear' %}selected{% endif %}>Footwear</option>
+        <option value="Accessories" {% if active_cat == 'Accessories' %}selected{% endif %}>Accessories</option>
+      </select>
+    </div>
+
+    <!-- Style Filter -->
+    <div style="flex: 1; min-width: 130px;">
+      <select name="style" class="form-select" onchange="this.form.submit()">
+        <option value="">All Styles</option>
+        <option value="Casual" {% if active_style == 'Casual' %}selected{% endif %}>Casual</option>
+        <option value="Smart Casual" {% if active_style == 'Smart Casual' %}selected{% endif %}>Smart Casual</option>
+        <option value="Formal" {% if active_style == 'Formal' %}selected{% endif %}>Formal</option>
+        <option value="Minimalist" {% if active_style == 'Minimalist' %}selected{% endif %}>Minimalist</option>
+        <option value="Traditional / Ethnic" {% if active_style == 'Traditional / Ethnic' %}selected{% endif %}>Traditional / Ethnic</option>
+      </select>
+    </div>
+
+    <!-- Brand Filter -->
+    <div style="flex: 1; min-width: 130px;">
+      <select name="brand" class="form-select" onchange="this.form.submit()">
+        <option value="">All Brands</option>
+        {% for b in available_brands %}
+        <option value="{{ b }}" {% if active_brand == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Max Budget in INR -->
+    <div style="flex: 1; min-width: 140px;">
+      <input type="number" name="max_price" value="{{ active_max_price }}" placeholder="Max Budget in ₹ (e.g. 6000)" class="form-control" style="font-size: 0.88rem;">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
+    {% if active_cat or active_style or active_brand or active_max_price or dept_is_manual %}
+    <a href="{{ url_for('shopping.index') }}" class="btn btn-secondary btn-sm">Reset</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- 6. PRODUCT GRID -->
+{% if products %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 24px; margin-bottom: 40px;">
+  {% for prod in products %}
+  <div class="iq-card iq-card-hover" style="display: flex; flex-direction: column; justify-content: space-between; padding: 0; overflow: hidden; border: 1px solid var(--color-soft-beige);">
+    
+    <!-- Product Thumbnail -->
+    <div style="position: relative; width: 100%; height: 260px; background-color: #F8F5EE; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+      <img src="{{ url_for('static', filename=prod.image) }}" 
+           onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';" 
+           alt="{{ prod.name }}" 
+           loading="lazy"
+           style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      
+      <!-- Honest fallback badge when product photo cannot be loaded -->
+      <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; background: #F4EFE7; color: var(--color-charcoal); padding: 20px; text-align: center; border: 1px dashed var(--color-soft-beige);">
+        <span style="font-size: 2.2rem; margin-bottom: 8px; opacity: 0.65;">📷</span>
+        <span class="badge badge-beige" style="font-size: 0.74rem; font-weight: 600; margin-bottom: 8px; color: var(--color-muted-taupe);">Image Unavailable</span>
+        <strong style="font-size: 0.88rem; color: var(--color-deep-forest); margin-bottom: 4px; line-height: 1.3;">{{ prod.name }}</strong>
+        <span style="font-size: 0.76rem; color: var(--color-muted-taupe);">{{ prod.brand }} • {{ prod.category }}</span>
+      </div>
+      
+      <!-- Brand Pill -->
+      <div style="position: absolute; top: 12px; left: 12px;">
+        <span class="badge badge-beige" style="font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">{{ prod.brand }}</span>
+      </div>
+
+      <!-- Price Pill in INR -->
+      <div style="position: absolute; top: 12px; right: 12px;">
+        <span class="badge badge-forest" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+          {{ prod.price_inr | inr }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Product Card Details -->
+    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <!-- Recommendation Banners -->
+        {% if prod.duplicate_warning %}
+        <div style="background-color: #FAF4E9; color: #8C5921; border-radius: var(--radius-sm); padding: 8px 10px; font-size: 0.78rem; margin-bottom: 10px; border-left: 3px solid #8C5921;">
+          <strong>⚠️ Duplicate Alert:</strong> {{ prod.duplicate_warning }}
+        </div>
+        {% elif prod.gap_recommendation %}
+        <div style="background-color: #EBF2EC; color: #1F4D33; border-radius: var(--radius-sm); padding: 8px 10px; font-size: 0.78rem; margin-bottom: 10px; border-left: 3px solid #1F4D33;">
+          <strong>✨ Recommended Gap Filler:</strong> {{ prod.gap_recommendation }}
+        </div>
+        {% endif %}
+
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px; color: var(--color-deep-forest);">{{ prod.name }}</h3>
+        <p style="font-size: 0.85rem; color: var(--color-muted-taupe); margin-bottom: 10px; line-height: 1.45;">{{ prod.description }}</p>
+
+        <!-- Pricing details -->
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+          <span style="font-size: 1.18rem; font-weight: 700; color: var(--color-deep-forest);">{{ prod.price_inr | inr }}</span>
+          <span style="font-size: 0.78rem; color: var(--color-muted-taupe);">(orig. ${{ "%.2f"|format(prod.price_usd) }} USD)</span>
+        </div>
+
+        <!-- Badges Bar -->
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;">
+          <span class="badge badge-beige">{{ prod.category }}</span>
+          {% if prod.department == 'womens' %}
+          <span class="badge badge-sage">Women's</span>
+          {% elif prod.department == 'mens' %}
+          <span class="badge badge-forest">Men's</span>
+          {% else %}
+          <span class="badge badge-beige">Unisex</span>
+          {% endif %}
+          <span class="badge badge-sage">{{ prod.color }}</span>
+          <span class="badge badge-beige">{{ prod.style }}</span>
+          {% if prod.size_range %}
+          <span class="badge badge-beige" style="font-size: 0.70rem;">Sizes: {{ prod.size_range }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Footer & Working Product Shopping Link -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--color-soft-beige);">
+        <span style="font-size: 0.78rem; color: var(--color-muted-taupe);">Merchant: <strong>{{ prod.merchant }}</strong></span>
+        <a href="{{ prod.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-weight: 600;">
+          View Product ↗
+        </a>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="iq-card" style="text-align: center; padding: 48px 20px; background-color: var(--color-surface-subtle); border: 1px dashed var(--color-soft-beige); margin-bottom: 40px;">
+  <div style="font-size: 2.2rem; margin-bottom: 10px;">🛍️</div>
+  <h3 style="color: var(--color-deep-forest); margin-bottom: 6px;">No Products Match Your Filter</h3>
+  <p class="text-muted" style="max-width: 460px; margin: 0 auto 18px auto; font-size: 0.90rem;">
+    Try widening your price range, clearing specific style or brand filters, or switching departments.
+  </p>
+  <a href="{{ url_for('shopping.index', department=active_department) }}" class="btn btn-primary btn-sm">
+    Clear Category & Price Filters
+  </a>
+</div>
+{% endif %}
+
+<!-- 7. EDITORIAL DISCLOSURE FOOTER -->
+<div class="alert alert-info" style="font-size: 0.82rem; line-height: 1.5;">
+  <strong>Shopping Companion Transparency:</strong> Products displayed are verified capsule pieces curated from established sustainable and contemporary retail brands. Clicking <em>View Product ↗</em> opens the verified merchant item page in a new window. Conversions calculated via {{ rate_source }}.
+</div>
+{% endblock %}

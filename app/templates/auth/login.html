@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Wardrobe IQ</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="brand-symbol" style="margin: 0 auto 12px auto; width: 48px; height: 48px; font-size: 1.4rem;">IQ</div>
+      <h1>Wardrobe IQ</h1>
+      <p class="text-muted" style="margin-top: 4px;">Your Closet, Smarter Everyday</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-group">
+        <label class="form-label" for="identifier">Username or Email</label>
+        <input type="text" id="identifier" name="identifier" class="form-control" placeholder="e.g. style_curator" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 0.85rem;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" name="remember"> Remember me
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Sign In to Closet</button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--color-muted-taupe);">
+      Don't have an account yet? 
+      <a href="{{ url_for('auth.register') }}" style="font-weight: 600; text-decoration: underline;">Create one here</a>
+    </div>
+  </div>
+</body>
+</html>

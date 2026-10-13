@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} — Digital Closet{% endblock %}
+{% block page_title %}{{ item.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 1040px; margin: 0 auto;">
+  <div style="margin-bottom: 24px;">
+    <a href="{{ url_for('closet.index', category=item.category) }}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--color-muted-taupe);">
+      ← Back to {{ item.category }}
+    </a>
+  </div>
+
+  <div class="iq-card" style="padding: 36px; margin-bottom: 32px;">
+    <div style="display: grid; grid-template-columns: 360px 1fr; gap: 40px; align-items: start;">
+      <!-- Garment Visual -->
+      <div>
+        <div style="border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--color-soft-beige); box-shadow: var(--shadow-md); background-color: #F8F5EE; position: relative;">
+          <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.name }}" style="width: 100%; height: 440px; object-fit: cover;">
+          <div style="position: absolute; top: 16px; left: 16px;">
+            {% if item.availability_status == 'Available' %}
+            <span class="badge badge-available">● Available</span>
+            {% elif item.availability_status == 'Worn / Needs Washing' %}
+            <span class="badge badge-worn">▲ Needs Wash</span>
+            {% else %}
+            <span class="badge badge-laundry">■ In Laundry</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Availability Quick Switch -->
+        {% if item.category in ['Tops', 'Bottoms', 'Dresses / One-piece'] %}
+        <div style="margin-top: 18px; padding: 16px; background-color: var(--color-surface-subtle); border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige);">
+          <div style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted-taupe); margin-bottom: 8px;">Update Availability</div>
+          <form method="POST" action="{{ url_for('laundry.update_status') }}" style="display: flex; gap: 8px;">
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <select name="status" class="form-select" style="font-size: 0.85rem; padding: 6px 10px;">
+              <option value="Available" {% if item.availability_status == 'Available' %}selected{% endif %}>Available</option>
+              <option value="Worn / Needs Washing" {% if item.availability_status == 'Worn / Needs Washing' %}selected{% endif %}>Worn / Needs Washing</option>
+              <option value="In Laundry" {% if item.availability_status == 'In Laundry' %}selected{% endif %}>In Laundry</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Update</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Garment Specifications -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-beige">{{ item.category }}</span>
+              {% if item.subcategory %}<span class="badge badge-sage">{{ item.subcategory }}</span>{% endif %}
+            </div>
+            <h1>{{ item.name }}</h1>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('closet.edit_item', item_id=item.id) }}" class="btn btn-secondary btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Edit
+            </a>
+            <form method="POST" action="{{ url_for('closet.delete_item', item_id=item.id) }}" onsubmit="return confirm('Are you sure you want to remove this garment from your closet? Historical wear statistics will be preserved.')">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Metric Badges -->
+        <div style="display: flex; gap: 20px; padding: 16px 0; border-top: 1px solid var(--color-soft-beige); border-bottom: 1px solid var(--color-soft-beige); margin: 18px 0;">
+          <div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-muted-taupe); letter-spacing: 0.05em;">Times Worn</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-deep-forest);">{{ wear_count }} <span style="font-size: 0.85rem; font-weight: normal; color: var(--color-muted-taupe);">times</span></div>
+          </div>
+          <div style="border-left: 1px solid var(--color-soft-beige); padding-left: 20px;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-muted-taupe); letter-spacing: 0.05em;">Recorded Value</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-charcoal);">
+              {% if item.purchase_price %}{{ item.purchase_price | inr }}{% else %}—{% endif %}
+            </div>
+          </div>
+          <div style="border-left: 1px solid var(--color-soft-beige); padding-left: 20px;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-muted-taupe); letter-spacing: 0.05em;">Cost Per Wear</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-deep-forest);">
+              {% if item.purchase_price and wear_count > 0 %}
+              {{ (item.purchase_price / wear_count) | inr }}
+              {% elif item.purchase_price %}
+              {{ item.purchase_price | inr }}
+              {% else %}
+              —
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Spec Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Colour</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 500; margin-top: 2px;">
+              <span style="width: 14px; height: 14px; border-radius: 50%; background-color: {{ item.color_hex }}; display: inline-block; border: 1px solid rgba(0,0,0,0.2);"></span>
+              {{ item.color }}
+            </div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Pattern</span>
+            <div style="font-weight: 500; margin-top: 2px;">{{ item.pattern }}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Style</span>
+            <div style="font-weight: 500; margin-top: 2px;">{{ item.style }}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Season</span>
+            <div style="font-weight: 500; margin-top: 2px;">{{ item.season }}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Suitable Occasions</span>
+            <div style="font-weight: 500; margin-top: 2px;">{{ item.occasions }}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">Brand & Size</span>
+            <div style="font-weight: 500; margin-top: 2px;">{{ item.brand or 'Unbranded' }} {% if item.size %}· Size {{ item.size }}{% endif %}</div>
+          </div>
+        </div>
+
+        {% if item.notes %}
+        <div style="background-color: var(--color-surface-subtle); padding: 14px 18px; border-radius: var(--radius-md); border-left: 3px solid var(--color-sage-green); margin-bottom: 24px;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-muted-taupe); letter-spacing: 0.05em; margin-bottom: 4px;">Curator Notes</div>
+          <p style="margin: 0; font-size: 0.9rem;">{{ item.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Actual Wear History -->
+        <div>
+          <h4 style="margin-bottom: 12px;">Wear History</h4>
+          {% if recent_wears %}
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for wear in recent_wears %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background-color: #FAF7F2; border-radius: var(--radius-md); font-size: 0.88rem; border: 1px solid var(--color-soft-beige);">
+              <span>Confirmed wear on <strong>{{ wear.date_worn.strftime('%B %d, %Y') }}</strong></span>
+              {% if wear.outfit %}
+              <span class="badge badge-sage">{{ wear.outfit.title }}</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted" style="font-size: 0.88rem;">This item has not been marked as worn yet. Select it in Smart Outfit Studio to log when you wear it!</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

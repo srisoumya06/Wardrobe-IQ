@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Confirm Garment Attributes — Wardrobe IQ{% endblock %}
+{% block page_title %}Verify & Confirm Garment{% endblock %}
+
+{% block content %}
+<div style="max-width: 980px; margin: 0 auto;">
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1>Verify Garment Attributes</h1>
+      <p class="page-subtitle">Review suggested classification. Adjust any details before saving into your digital closet.</p>
+    </div>
+    <a href="{{ url_for('closet.index') }}" class="btn btn-secondary btn-sm">Discard</a>
+  </div>
+
+  <!-- SERVICE TRANSPARENCY NOTICE -->
+  <div class="alert {% if ai_data.is_ai_recognized %}alert-success{% else %}alert-info{% endif %}" style="margin-bottom: 24px;">
+    <div>
+      <strong>{% if ai_data.is_ai_recognized %}✨ AI Vision Recognition Active{% else %}🎨 Color Analysis Active{% endif %}:</strong>
+      <span>{{ ai_data.service_note }}</span>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('closet.save_confirmed_item') }}" class="iq-card" style="padding: 32px;">
+    <input type="hidden" name="image_path" value="{{ image_path }}">
+
+    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 36px; align-items: start;">
+      <!-- Image Display Column -->
+      <div>
+        <div style="border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--color-soft-beige); box-shadow: var(--shadow-sm); background-color: #F8F5EE; text-align: center;">
+          <img src="{{ url_for('static', filename=image_path) }}" alt="Garment review" style="width: 100%; height: 340px; object-fit: cover;">
+        </div>
+        <p class="text-muted" style="font-size: 0.8rem; text-align: center; margin-top: 10px;">Catalog photo saved</p>
+      </div>
+
+      <!-- Form Inputs Column -->
+      <div>
+        <div class="form-group">
+          <label class="form-label" for="name">Garment Title / Description *</label>
+          <input type="text" id="name" name="name" class="form-control" value="{{ ai_data.suggested_name }}" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="category">Main Category *</label>
+            <select id="category" name="category" class="form-select" required>
+              {% for cat in categories %}
+              <option value="{{ cat }}" {% if ai_data.category == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="subcategory">Subcategory</label>
+            <input type="text" id="subcategory" name="subcategory" class="form-control" value="{{ ai_data.subcategory }}" placeholder="e.g. Button-down, Chinos">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="color">Dominant Colour *</label>
+            <input type="text" id="color" name="color" class="form-control" value="{{ ai_data.color }}" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="color_hex">Colour Swatch</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="color" id="color_picker" value="{{ ai_data.color_hex }}" style="width: 44px; height: 42px; border: 1px solid var(--color-soft-beige); border-radius: var(--radius-sm); cursor: pointer;" onchange="document.getElementById('color_hex').value = this.value">
+              <input type="text" id="color_hex" name="color_hex" class="form-control" value="{{ ai_data.color_hex }}" onchange="document.getElementById('color_picker').value = this.value">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="pattern">Pattern</label>
+            <select id="pattern" name="pattern" class="form-select">
+              <option value="Solid" {% if ai_data.pattern == 'Solid' %}selected{% endif %}>Solid</option>
+              <option value="Striped" {% if ai_data.pattern == 'Striped' %}selected{% endif %}>Striped</option>
+              <option value="Plaid" {% if ai_data.pattern == 'Plaid' %}selected{% endif %}>Plaid</option>
+              <option value="Checked" {% if ai_data.pattern == 'Checked' %}selected{% endif %}>Checked</option>
+              <option value="Floral" {% if ai_data.pattern == 'Floral' %}selected{% endif %}>Floral</option>
+              <option value="Graphic" {% if ai_data.pattern == 'Graphic' %}selected{% endif %}>Graphic</option>
+              <option value="Other" {% if ai_data.pattern == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="style">Style</label>
+            <select id="style" name="style" class="form-select">
+              <option value="Casual" {% if ai_data.style == 'Casual' %}selected{% endif %}>Casual</option>
+              <option value="Smart Casual" {% if ai_data.style == 'Smart Casual' %}selected{% endif %}>Smart Casual</option>
+              <option value="Formal" {% if ai_data.style == 'Formal' %}selected{% endif %}>Formal</option>
+              <option value="Minimalist" {% if ai_data.style == 'Minimalist' %}selected{% endif %}>Minimalist</option>
+              <option value="Streetwear" {% if ai_data.style == 'Streetwear' %}selected{% endif %}>Streetwear</option>
+              <option value="Athleisure" {% if ai_data.style == 'Athleisure' %}selected{% endif %}>Athleisure</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="season">Season</label>
+            <select id="season" name="season" class="form-select">
+              <option value="All-Season" {% if ai_data.season == 'All-Season' %}selected{% endif %}>All-Season</option>
+              <option value="Spring" {% if ai_data.season == 'Spring' %}selected{% endif %}>Spring</option>
+              <option value="Summer" {% if ai_data.season == 'Summer' %}selected{% endif %}>Summer</option>
+              <option value="Autumn" {% if ai_data.season == 'Autumn' %}selected{% endif %}>Autumn</option>
+              <option value="Winter" {% if ai_data.season == 'Winter' %}selected{% endif %}>Winter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="occasions">Suitable Occasions</label>
+          <input type="text" id="occasions" name="occasions" class="form-control" value="{{ ai_data.occasions }}" placeholder="e.g. College, Casual Outings, Work/Office">
+        </div>
+
+        <!-- Optional Garment Metrics -->
+        <div style="background-color: var(--color-surface-subtle); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige); margin-bottom: 24px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 12px;">Additional Details (Optional)</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;" for="brand">Brand</label>
+              <input type="text" id="brand" name="brand" class="form-control" placeholder="e.g. Uniqlo">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;" for="size">Size</label>
+              <input type="text" id="size" name="size" class="form-control" placeholder="e.g. M / 32">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;" for="fabric">Fabric</label>
+              <input type="text" id="fabric" name="fabric" class="form-control" placeholder="e.g. 100% Cotton">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 12px;">
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;" for="purchase_price">Purchase Price (₹)</label>
+              <input type="number" step="1" id="purchase_price" name="purchase_price" class="form-control" placeholder="e.g. 2500">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;" for="notes">Styling Notes</label>
+              <input type="text" id="notes" name="notes" class="form-control" placeholder="e.g. Looks best cuffed at sleeves">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 14px;">
+          <a href="{{ url_for('closet.index') }}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" style="padding: 12px 28px;">
+            ✓ Confirm & Save to Closet (+15 Pts)
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

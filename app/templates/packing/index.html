@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Pack Your Bags — Wardrobe IQ{% endblock %}
+{% block page_title %}Pack Your Bags{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Pack Your Bags</h1>
+    <p class="page-subtitle">Intelligent travel capsule planner. Pack versatile multi-wear outfits tailored to your destination, trip length, and laundry availability.</p>
+  </div>
+  <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('newTripModal').classList.add('active')">
+    + New Trip Plan
+  </button>
+</div>
+
+{% if active_trip %}
+<!-- TRIP OVERVIEW CARD -->
+<div class="iq-card" style="padding: 28px; margin-bottom: 30px; background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F2 100%);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+        <span class="badge badge-forest">✈️ {{ active_trip.destination }}</span>
+        <span class="badge badge-beige">{{ active_trip.duration_days }} Days ({{ active_trip.start_date.strftime('%b %d') }} – {{ active_trip.end_date.strftime('%b %d') }})</span>
+        <span class="badge badge-sage">{% if active_trip.laundry_access %}Laundry Access (Capsule Quota){% else %}No Laundry (Full Quota){% endif %}</span>
+      </div>
+      <h2 style="font-size: 1.6rem;">{{ active_trip.trip_purpose }}</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Activities: {{ active_trip.activities }}</p>
+    </div>
+
+    <!-- Weight & Progress Counters -->
+    <div style="text-align: right;">
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-deep-forest);">
+        {{ active_trip.total_weight_kg }} kg <span style="font-size: 0.85rem; font-weight: normal; color: var(--color-muted-taupe);">/ {{ active_trip.luggage_limit_kg }} kg limit</span>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--color-muted-taupe);">Estimated Luggage Weight</div>
+    </div>
+  </div>
+
+  <!-- Real-Time Progress Bar -->
+  <div style="margin-top: 14px;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+      <span id="progressText"><strong>{{ active_trip.packed_count }}</strong> of {{ active_trip.total_count }} items packed</span>
+      <span id="progressPct">{% if active_trip.total_count > 0 %}{{ "%.0f"|format((active_trip.packed_count / active_trip.total_count) * 100) }}%{% else %}0%{% endif %}</span>
+    </div>
+    <div style="width: 100%; height: 8px; background-color: var(--color-soft-beige); border-radius: var(--radius-pill); overflow: hidden;">
+      <div id="progressBar" style="width: {{ (active_trip.packed_count / active_trip.total_count * 100) if active_trip.total_count > 0 else 0 }}%; height: 100%; background-color: var(--color-deep-forest); border-radius: var(--radius-pill); transition: width 0.3s ease;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- POLISHED SUITCASE PACKING ANIMATION STAGE -->
+<div class="iq-card" style="padding: 28px; margin-bottom: 36px; text-align: center; background-color: #FAF6F0;" id="suitcaseStage">
+  <div style="max-width: 440px; margin: 0 auto; position: relative;">
+    <!-- Suitcase Box -->
+    <div id="suitcaseBox" style="width: 220px; height: 160px; margin: 0 auto 16px auto; background-color: #34483B; border-radius: 16px; border: 4px solid #D8CBBB; position: relative; box-shadow: var(--shadow-md); display: flex; align-items: center; justify-content: center; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="width: 60px; height: 18px; border: 3px solid #D8CBBB; border-bottom: none; border-radius: 8px 8px 0 0; position: absolute; top: -21px;"></div>
+      <div id="suitcaseLuggageLabel" style="color: #F4EFE7; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.05em;">
+        🧳 {{ active_trip.destination }}
+      </div>
+    </div>
+
+    <!-- Final Congratulation Banner (Shown when fully packed) -->
+    <div id="packedSuccessBanner" style="display: {% if active_trip.total_count > 0 and active_trip.packed_count == active_trip.total_count %}block{% else %}none{% endif %}; animation: fadeIn 0.4s ease;">
+      <h3 style="color: #1F4D33; font-size: 1.4rem; margin-bottom: 4px;">Packed and ready for your trip!</h3>
+      <p class="text-muted" style="font-size: 0.88rem;">All recommended clothing and essentials are securely stowed.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('packing.complete_trip', trip_id=active_trip.id) }}" style="display: inline-block; margin-top: 10px;">
+      <button type="submit" class="btn btn-primary btn-sm">
+        ✓ Pack All Items & Complete (+35 Pts)
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- EDITABLE CHECKLIST COLUMNS -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px; align-items: start;">
+  <!-- Checklist -->
+  <div class="iq-card" style="padding: 28px;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 20px;">Packing Checklist</h3>
+
+    {% for cat, items in grouped_items.items() %}
+    <div style="margin-bottom: 24px;">
+      <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted-taupe); margin-bottom: 12px; border-bottom: 1px solid var(--color-soft-beige); padding-bottom: 6px;">
+        {{ cat }} ({{ items|length }})
+      </h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for pi in items %}
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: var(--color-surface-subtle); border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige);">
+          <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1;">
+            <input type="checkbox" onchange="toggleItemPacked({{ pi.id }}, this)" {% if pi.is_packed %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--color-deep-forest);">
+            <span style="font-size: 0.92rem; {% if pi.is_packed %}text-decoration: line-through; color: var(--color-muted-taupe);{% endif %}" id="itemLabel_{{ pi.id }}">
+              {{ pi.custom_name }}
+            </span>
+          </label>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.78rem; color: var(--color-muted-taupe);">{{ pi.weight_grams|round|int }}g</span>
+            <form method="POST" action="{{ url_for('packing.delete_item', item_id=pi.id) }}">
+              <button type="submit" style="background: none; border: none; color: var(--color-muted-taupe); cursor: pointer;" title="Remove item">✕</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Add Custom Item Form -->
+    <form method="POST" action="{{ url_for('packing.add_custom_item') }}" style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--color-soft-beige);">
+      <input type="hidden" name="trip_id" value="{{ active_trip.id }}">
+      <input type="text" name="item_name" placeholder="Add custom item (e.g. Passport, Sunglasses)..." class="form-control" required style="flex: 2;">
+      <select name="category" class="form-select" style="flex: 1;">
+        <option value="Essentials">Essentials</option>
+        <option value="Tops">Tops</option>
+        <option value="Bottoms">Bottoms</option>
+        <option value="Footwear">Footwear</option>
+        <option value="Accessories">Accessories</option>
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">+ Add</button>
+    </form>
+  </div>
+
+  <!-- Trips Sidebar & Actions -->
+  <div>
+    <div class="iq-card" style="padding: 24px; margin-bottom: 24px;">
+      <h4 style="font-size: 1.05rem; margin-bottom: 14px;">Your Saved Trips</h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for t in trips %}
+        <a href="{{ url_for('packing.index', trip_id=t.id) }}" style="padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.88rem; display: flex; justify-content: space-between; align-items: center; text-decoration: none; {% if t.id == active_trip.id %}background-color: var(--color-deep-forest); color: #FFF; font-weight: 600;{% else %}background-color: var(--color-surface-subtle); color: var(--color-charcoal); border: 1px solid var(--color-soft-beige);{% endif %}">
+          <span>✈️ {{ t.destination }}</span>
+          <span style="font-size: 0.75rem;">{{ t.duration_days }}d</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('packing.delete_trip', trip_id=active_trip.id) }}" onsubmit="return confirm('Delete this saved trip plan?')">
+      <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">Delete Current Trip Plan</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+  </div>
+  <h2>Ready to Pack?</h2>
+  <p>Set up your upcoming trip details. Our assistant will generate a versatile luggage capsule straight from your digital wardrobe.</p>
+  <button type="button" class="btn btn-primary" onclick="document.getElementById('newTripModal').classList.add('active')">
+    + Create Trip Packing Plan
+  </button>
+</div>
+{% endif %}
+
+<!-- MODAL: NEW TRIP SETUP -->
+<div class="iq-modal-backdrop" id="newTripModal">
+  <div class="iq-modal" style="max-width: 600px;">
+    <form method="POST" action="{{ url_for('packing.create_trip') }}">
+      <div class="modal-header">
+        <h3>New Trip Packing Plan</h3>
+        <button type="button" onclick="document.getElementById('newTripModal').classList.remove('active')" style="background: none; border: none; font-size: 1.3rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="destination">Destination *</label>
+          <input type="text" id="destination" name="destination" class="form-control" placeholder="e.g. Kyoto, Japan or Milan, Italy" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="start_date">Departure Date *</label>
+            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ default_start }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="end_date">Return Date *</label>
+            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ default_end }}" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="trip_purpose">Trip Purpose</label>
+          <input type="text" id="trip_purpose" name="trip_purpose" class="form-control" placeholder="e.g. College Study Tour, Vacation, Conference">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="activities">Planned Activities</label>
+          <input type="text" id="activities" name="activities" class="form-control" placeholder="e.g. Walking tours, dinner, presentations">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="luggage_limit_kg">Luggage Weight Limit (kg)</label>
+            <input type="number" step="0.5" id="luggage_limit_kg" name="luggage_limit_kg" class="form-control" value="15.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="laundry_access">Laundry Access During Trip?</label>
+            <select id="laundry_access" name="laundry_access" class="form-select">
+              <option value="no">No Laundry (Pack More Clothes)</option>
+              <option value="yes">Yes Laundry (Compact Capsule)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('newTripModal').classList.remove('active')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Generate Luggage Capsule →</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function toggleItemPacked(itemId, checkbox) {
+  const label = document.getElementById('itemLabel_' + itemId);
+  try {
+    const res = await fetch('/packing/toggle-item/' + itemId, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      if (data.is_packed) {
+        label.style.textDecoration = 'line-through';
+        label.style.color = 'var(--color-muted-taupe)';
+      } else {
+        label.style.textDecoration = 'none';
+        label.style.color = 'inherit';
+      }
+
+      // Update counters
+      const pct = Math.round((data.packed_count / data.total_count) * 100);
+      document.getElementById('progressText').innerHTML = '<strong>' + data.packed_count + '</strong> of ' + data.total_count + ' items packed';
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressBar').style.width = pct + '%';
+
+      // Suitcase animation and banner check
+      const banner = document.getElementById('packedSuccessBanner');
+      const suitcase = document.getElementById('suitcaseBox');
+      if (data.all_packed) {
+        banner.style.display = 'block';
+        suitcase.style.transform = 'scale(1.05)';
+        setTimeout(() => suitcase.style.transform = 'scale(1)', 400);
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    checkbox.checked = !checkbox.checked;
+  }
+}
+</script>
+{% endblock %}

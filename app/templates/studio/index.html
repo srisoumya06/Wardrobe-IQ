@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% block title %}Smart Outfit Studio — Wardrobe IQ{% endblock %}
+{% block page_title %}Smart Outfit Studio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Smart Outfit Studio</h1>
+    <p class="page-subtitle">Describe your occasion in natural language. Our styling engine curates 2–3 harmonious combinations strictly from your available closet.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a href="#calendar" class="btn btn-secondary btn-sm">Jump to Monthly Calendar ↓</a>
+    <a href="#favorites" class="btn btn-secondary btn-sm">Saved Favourites ↓</a>
+  </div>
+</div>
+
+<!-- WARDROBE GAP NOTIFICATION (IF APPLICABLE) -->
+{% if wardrobe_gaps_info %}
+<div class="iq-card" style="padding: 24px; margin-bottom: 28px; border-left: 5px solid var(--color-deep-forest); background-color: #FAF5EE;">
+  <div style="display: flex; align-items: flex-start; gap: 16px;">
+    <div style="font-size: 1.8rem; line-height: 1;">⚠️</div>
+    <div style="flex: 1;">
+      <h3 style="font-size: 1.2rem; margin-bottom: 6px; color: var(--color-deep-forest);">
+        Wardrobe Gap Identified for: "{{ wardrobe_gaps_info.prompt }}"
+      </h3>
+      <p style="font-size: 0.9rem; color: var(--color-charcoal); margin-bottom: 10px;">
+        To achieve an authentic, dress-code compliant look for this occasion, we noticed the following pieces are currently missing or unavailable in your closet:
+      </p>
+      <ul style="margin: 0 0 14px 20px; font-size: 0.88rem; color: var(--color-charcoal);">
+        {% for item in wardrobe_gaps_info['items'] %}
+        <li style="margin-bottom: 4px;"><strong>{{ item }}</strong></li>
+        {% endfor %}
+      </ul>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="{{ url_for('laundry.index') }}" class="btn btn-secondary btn-sm">Check Laundry & Availability →</a>
+        <a href="{{ url_for('shopping.index') }}" class="btn btn-primary btn-sm">Explore Shopping Companion →</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- 1. NATURAL LANGUAGE REQUEST FORM -->
+<div class="iq-card" style="padding: 32px; margin-bottom: 36px; background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F2 100%);">
+  <form method="POST" action="{{ url_for('studio.generate') }}">
+    <div style="margin-bottom: 20px;">
+      <label class="form-label" style="font-family: var(--font-serif); font-size: 1.55rem; font-weight: 600; color: var(--color-charcoal);" for="prompt">
+        What are we dressing for?
+      </label>
+      <div style="display: flex; gap: 12px; margin-top: 10px;">
+        <input type="text" id="prompt" name="prompt" class="form-control" style="font-size: 1.05rem; padding: 14px 18px;" placeholder="e.g. Suggest an outfit for a placement interview..." required>
+        <button type="submit" class="btn btn-primary" style="padding: 14px 28px; white-space: nowrap; font-weight: 600;">
+          Generate Looks →
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Prompt Pills -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+      <span style="font-size: 0.8rem; color: var(--color-muted-taupe); align-self: center;">Popular ideas:</span>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Suggest an outfit for a placement interview';">Placement Interview</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Give me a sharp outfit for a conference presentation';">Conference Presentation</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Suggest a casual outfit for college';">College Campus</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Traditional outfit for a wedding reception';">Wedding Reception</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Help me style an outfit for a festival celebration';">Festival Celebration</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Comfortable layered outfit for airport travel';">Airport Travel</button>
+      <button type="button" class="chat-tag-btn" onclick="document.getElementById('prompt').value='Create an elegant evening look for dinner';">Evening Dinner</button>
+    </div>
+
+    <!-- Optional Filters -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding-top: 16px; border-top: 1px solid var(--color-soft-beige);">
+      <div>
+        <label class="form-label" style="font-size: 0.82rem;" for="occasion">Occasion (Optional)</label>
+        <select id="occasion" name="occasion" class="form-select">
+          <option value="">Any Occasion</option>
+          <option value="placement_interview">Placement / Job Interview</option>
+          <option value="presentation">Presentation / Conference</option>
+          <option value="college">College / Campus</option>
+          <option value="casual">Casual Day Out</option>
+          <option value="party">Party / Evening</option>
+          <option value="wedding">Wedding / Reception</option>
+          <option value="festival">Festival / Traditional</option>
+          <option value="travel">Travel / Transit</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label" style="font-size: 0.82rem;" for="style">Style Preference</label>
+        <select id="style" name="style" class="form-select">
+          <option value="">Any Aesthetic</option>
+          <option value="Formal">Business Formal</option>
+          <option value="Smart Casual">Smart Casual</option>
+          <option value="Casual">Casual</option>
+          <option value="Minimalist">Minimalist</option>
+          <option value="Elegant">Elegant</option>
+          <option value="Traditional">Traditional</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label" style="font-size: 0.82rem;" for="outfit_type">Outfit Type</label>
+        <select id="outfit_type" name="outfit_type" class="form-select">
+          <option value="any">Top + Bottom or One-Piece</option>
+          <option value="top_bottom">Top & Bottom Only</option>
+          <option value="dress">Dress / One-Piece Only</option>
+        </select>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- 2. OUTFIT PROPOSALS -->
+<div style="margin-bottom: 50px;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+    <h2>Curated Outfit Choices</h2>
+    <span class="text-muted" style="font-size: 0.88rem;">Available Wardrobe Pieces: <strong>{{ available_count }}</strong></span>
+  </div>
+
+  {% if outfits %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px;">
+    {% for outfit in outfits %}
+    <div class="iq-card iq-card-hover" style="display: flex; flex-direction: column; justify-content: space-between; padding: 24px;">
+      <div>
+        <!-- Card Header with Score -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <div style="display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
+              <span class="badge badge-sage">{{ outfit.occasion }}</span>
+              <span class="badge badge-beige">{{ outfit.style }}</span>
+            </div>
+            <h3 style="font-size: 1.35rem;">{{ outfit.title }}</h3>
+          </div>
+          <div style="text-align: right;" title="Styling score calculated from dress code suitability and color harmony.">
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-deep-forest);">{{ outfit.score }}%</div>
+            <div style="font-size: 0.72rem; color: var(--color-muted-taupe); text-transform: uppercase;">Match Score</div>
+          </div>
+        </div>
+
+        <!-- Garment Visual Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 10px; margin-bottom: 18px; background-color: var(--color-surface-subtle); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige);">
+          {% for oi in outfit.outfit_items %}
+            {% if oi.item %}
+            <div style="text-align: center;">
+              <div style="width: 100%; height: 95px; border-radius: var(--radius-sm); overflow: hidden; background-color: #F8F5EE; border: 1px solid var(--color-soft-beige); margin-bottom: 4px;">
+                <img src="{{ url_for('static', filename=oi.item.image_path) }}" alt="{{ oi.item.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+              </div>
+              <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--color-muted-taupe);">{{ oi.slot }}</div>
+              <div style="font-size: 0.75rem; color: var(--color-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ oi.item.name }}">{{ oi.item.name }}</div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <!-- Styling Rationale -->
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--color-muted-taupe); letter-spacing: 0.05em; margin-bottom: 4px;">Why this outfit matches:</div>
+          <p style="font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.45;">{{ outfit.why_explanation }}</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="padding-top: 18px; border-top: 1px solid var(--color-soft-beige); display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 8px;">
+          <!-- Favorite toggle -->
+          <form method="POST" action="{{ url_for('studio.toggle_favorite', outfit_id=outfit.id) }}" style="flex: 1;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;" title="Save to Favourites">
+              {% if outfit.is_favorite %}❤️ Saved in Favourites{% else %}🤍 Save to Favourites{% endif %}
+            </button>
+          </form>
+        </div>
+
+        <!-- Mark as Worn trigger -->
+        <button type="button" class="btn btn-primary btn-sm" style="width: 100%; font-weight: 600;" onclick="openMarkWornModal({{ outfit.id }}, '{{ outfit.title|replace('\'', '\\\'') }}')">
+          ✓ Confirm: Mark as Worn Today
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <h3>Ready to Style</h3>
+    <p>Describe your occasion in the prompt box above to generate tailored combinations from your closet.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 3. SAVED FAVOURITES SECTION -->
+<div id="favorites" style="margin-bottom: 50px; scroll-margin-top: 100px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>Saved Favourites</h2>
+    <span class="badge badge-beige">{{ favorites|length }} Outfits</span>
+  </div>
+
+  {% if favorites %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+    {% for fav in favorites %}
+    <div class="iq-card" style="padding: 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+        <h4 style="margin: 0; font-size: 1.05rem;">{{ fav.title }}</h4>
+        <form method="POST" action="{{ url_for('studio.toggle_favorite', outfit_id=fav.id) }}">
+          <button type="submit" style="background: none; border: none; cursor: pointer;" title="Remove favorite">❤️</button>
+        </form>
+      </div>
+      <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+        {% for oi in fav.outfit_items %}
+          {% if oi.item %}
+          <img src="{{ url_for('static', filename=oi.item.image_path) }}" alt="{{ oi.item.name }}" style="width: 44px; height: 50px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--color-soft-beige);" title="{{ oi.item.name }}" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div>
+        <button type="button" class="btn btn-secondary btn-sm" style="width: 100%; font-weight: 600;" onclick="openMarkWornModal({{ fav.id }}, '{{ fav.title|replace('\'', '\\\'') }}')">
+          ✓ Log Wear Today
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="iq-card" style="padding: 24px; text-align: center;">
+    <p class="text-muted" style="margin: 0;">No favourites saved yet. Click 'Favourite' on any generated outfit to pin it here.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 4. INTERACTIVE MONTHLY WEAR CALENDAR & OUTFIT MEMORIES -->
+<div id="calendar" class="iq-card" style="padding: 32px; scroll-margin-top: 100px; margin-bottom: 40px;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h2>Interactive Wear Calendar & Outfit Memories</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Chronological journal restricted to confirmed worn history only. Click any day to inspect worn outfits.</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span class="badge badge-sage">{{ worn_history_entries|length }} Total Confirmed Wears</span>
+    </div>
+  </div>
+
+  <!-- Calendar Navigation Controls -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; background-color: var(--color-surface-subtle); padding: 12px 18px; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige);">
+    <a href="{{ url_for('studio.index', year=prev_year, month=prev_month) }}#calendar" class="btn btn-secondary btn-sm" style="font-weight: 600;">
+      ← Previous Month
+    </a>
+    <div style="text-align: center;">
+      <h3 style="margin: 0; font-family: var(--font-serif); font-size: 1.45rem; color: var(--color-deep-forest);">{{ current_month_heading }}</h3>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="{{ url_for('studio.index') }}#calendar" class="btn btn-secondary btn-sm" title="Jump to current month">Current Month</a>
+      <a href="{{ url_for('studio.index', year=next_year, month=next_month) }}#calendar" class="btn btn-secondary btn-sm" style="font-weight: 600;">
+        Next Month →
+      </a>
+    </div>
+  </div>
+
+  <!-- Weekday Column Headers -->
+  <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; margin-bottom: 8px;">
+    {% for day_name in weekday_headers %}
+    <div style="font-size: 0.82rem; font-weight: 700; color: var(--color-muted-taupe); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 0;">
+      {{ day_name }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Monthly Calendar Grid Cells -->
+  <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
+    {% for week in calendar_weeks %}
+      {% for cell in week %}
+      <div 
+        class="calendar-day-cell {% if cell.is_today %}is-today{% endif %} {% if not cell.is_current_month %}other-month{% endif %} {% if cell.has_wears %}has-wears{% endif %} {% if cell.date_str == selected_date_str %}is-selected{% endif %}"
+        onclick="selectCalendarDate('{{ cell.date_str }}')"
+        id="cell_{{ cell.date_str }}"
+        style="min-height: 100px; padding: 8px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; position: relative;
+               {% if not cell.is_current_month %}
+                 background-color: #FAF6F0; border: 1px dashed #E0D6C8; color: #B0A595;
+               {% elif cell.date_str == selected_date_str %}
+                 background-color: #FAF4EB; border: 2px solid var(--color-deep-forest); box-shadow: 0 0 0 1px var(--color-deep-forest);
+               {% elif cell.has_wears %}
+                 background-color: #F4EFE7; border: 1px solid var(--color-sage-green);
+               {% else %}
+                 background-color: #FFFFFF; border: 1px solid var(--color-soft-beige);
+               {% endif %}
+               {% if cell.is_today %}
+                 border-top: 3px solid var(--color-deep-forest);
+               {% endif %}
+        "
+      >
+        <!-- Cell Header: Date Number & Badge -->
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 0.88rem; font-weight: {% if cell.is_today or cell.has_wears %}700{% else %}500{% endif %}; color: {% if not cell.is_current_month %}#B0A595{% elif cell.is_today %}var(--color-deep-forest){% else %}var(--color-charcoal){% endif %};">
+            {{ cell.day_number }}
+          </span>
+          {% if cell.is_today %}
+          <span style="font-size: 0.65rem; background-color: var(--color-deep-forest); color: #FFFFFF; padding: 1px 4px; border-radius: 3px; font-weight: 600;">TODAY</span>
+          {% endif %}
+        </div>
+
+        <!-- Cell Content: Confirmed Worn Outfits -->
+        <div>
+          {% if cell.has_wears %}
+          <div style="margin-top: 4px;">
+            <div style="font-size: 0.72rem; font-weight: 600; color: var(--color-deep-forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;" title="{{ cell.entries[0].outfit_title }}">
+              👔 {{ cell.entries[0].outfit_title }}
+            </div>
+            
+            <!-- Mini Garment Thumbnails Row -->
+            <div style="display: flex; gap: 3px; overflow: hidden;">
+              {% for g in cell.entries[0].garments[:3] %}
+              <div style="width: 22px; height: 26px; border-radius: 2px; overflow: hidden; border: 1px solid #D8CBBB; background-color: #FFFFFF;" title="{{ g.name }}">
+                <img src="{{ url_for('static', filename=g.image) }}" alt="{{ g.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+              </div>
+              {% endfor %}
+              {% if cell.entries|length > 1 %}
+              <div style="font-size: 0.65rem; font-weight: 700; color: var(--color-deep-forest); align-self: center; margin-left: 2px;">
+                +{{ cell.entries|length - 1 }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <!-- DATE OUTFIT INSPECTOR PANEL -->
+  <div id="dateInspectorPanel" style="background-color: var(--color-surface-subtle); border-radius: var(--radius-lg); border: 1px solid var(--color-soft-beige); padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--color-soft-beige); padding-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+      <div>
+        <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-deep-forest);">
+          📅 Outfits Worn on <span id="inspectorDateHeading">{{ selected_date_str }}</span>
+        </h3>
+        <span class="text-muted" style="font-size: 0.82rem;" id="inspectorCountLabel">
+          {{ selected_date_entries|length }} confirmed wear records
+        </span>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openMarkWornForSelectedDate()">
+        + Log Outfit for this Date
+      </button>
+    </div>
+
+    <!-- Inspector Content (Populated dynamically) -->
+    <div id="inspectorEntriesContainer">
+      {% if selected_date_entries %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        {% for entry in selected_date_entries %}
+        <div class="iq-card" style="padding: 16px; background-color: #FFFFFF;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <h4 style="margin: 0; font-size: 1.05rem;">{{ entry.outfit_title }}</h4>
+            <form method="POST" action="{{ url_for('studio.delete_wear', wear_id=entry.id) }}" onsubmit="return confirm('Remove this wear record from history?')">
+              <button type="submit" style="background: none; border: none; color: var(--color-muted-taupe); cursor: pointer; font-size: 0.85rem;" title="Remove wear record">✕ Remove</button>
+            </form>
+          </div>
+          {% if entry.notes %}
+          <p style="font-size: 0.85rem; font-style: italic; color: var(--color-muted-taupe); margin-bottom: 10px;">"{{ entry.notes }}"</p>
+          {% endif %}
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% for g in entry.garments %}
+            <div style="display: flex; align-items: center; gap: 6px; background: #FAF7F2; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--color-soft-beige);">
+              <img src="{{ url_for('static', filename=g.image) }}" alt="{{ g.name }}" style="width: 28px; height: 32px; object-fit: cover; border-radius: 2px;" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+              <span style="font-size: 0.75rem; color: var(--color-charcoal);">{{ g.name }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 24px; color: var(--color-muted-taupe);">
+          <p style="margin-bottom: 12px; font-size: 0.92rem;">No outfits logged as worn on this date.</p>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openMarkWornForSelectedDate()">
+            ✓ Log an Outfit Worn on this Date
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- MODAL: CONFIRM MARK AS WORN -->
+<div class="iq-modal-backdrop" id="markWornModalBackdrop">
+  <div class="iq-modal" style="max-width: 520px;">
+    <form method="POST" action="{{ url_for('studio.mark_worn') }}">
+      <div class="modal-header">
+        <h3 id="wornModalTitle">Confirm Outfit Wear</h3>
+        <button type="button" onclick="closeMarkWornModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="outfit_id" id="wornOutfitId" value="">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+          <small>Logging this wear will award <strong>+25 Fashion Points</strong> and move wearable tops, bottoms, and dresses to <em>Needs Washing</em> in your Laundry manager.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="wornOutfitSelect">Outfit to Mark as Worn *</label>
+          <select id="wornOutfitSelect" class="form-select" onchange="document.getElementById('wornOutfitId').value = this.value; document.getElementById('wornModalTitle').textContent = 'Confirm: ' + this.options[this.selectedIndex].text;">
+            {% for o in outfits %}
+            <option value="{{ o.id }}">{{ o.title }} ({{ o.created_at.strftime('%b %d') }})</option>
+            {% endfor %}
+            {% for fav in favorites %}
+              {% if fav.id not in outfits|map(attribute='id') %}
+              <option value="{{ fav.id }}">★ {{ fav.title }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="date_worn">Date Worn *</label>
+          <input type="date" id="date_worn" name="date_worn" class="form-control" value="{{ today_date }}" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="notes">Outfit Memory Note (Optional)</label>
+          <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="e.g. Worn for senior placement interview, felt poised and confident."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeMarkWornModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">✓ Confirm Wear (+25 Pts)</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentTryonMode = 'model';
+const wornByDateData = {{ worn_by_date_json|safe }};
+let activeSelectedDate = '{{ selected_date_str }}';
+
+function openMarkWornModal(outfitId, outfitTitle) {
+  document.getElementById('wornOutfitId').value = outfitId;
+  const sel = document.getElementById('wornOutfitSelect');
+  if (sel) {
+    sel.value = outfitId;
+  }
+  document.getElementById('wornModalTitle').textContent = 'Confirm: ' + outfitTitle;
+  document.getElementById('markWornModalBackdrop').classList.add('active');
+}
+
+function closeMarkWornModal() {
+  document.getElementById('markWornModalBackdrop').classList.remove('active');
+}
+
+function openMarkWornForSelectedDate() {
+  const outfitInput = document.getElementById('wornOutfitId');
+  const sel = document.getElementById('wornOutfitSelect');
+  if (sel && sel.value) {
+    outfitInput.value = sel.value;
+    document.getElementById('wornModalTitle').textContent = 'Log Wear for ' + sel.options[sel.selectedIndex].text;
+  } else {
+    {% if outfits %}
+    outfitInput.value = '{{ outfits[0].id }}';
+    if (sel) sel.value = '{{ outfits[0].id }}';
+    document.getElementById('wornModalTitle').textContent = 'Log Wear for {{ outfits[0].title|replace('\'', '\\\'') }}';
+    {% else %}
+    document.getElementById('wornModalTitle').textContent = 'Log Wear for Selected Date';
+    {% endif %}
+  }
+  document.getElementById('date_worn').value = activeSelectedDate;
+  document.getElementById('markWornModalBackdrop').classList.add('active');
+}
+
+function selectCalendarDate(dateStr) {
+  activeSelectedDate = dateStr;
+  
+  // Highlight active cell
+  document.querySelectorAll('.calendar-day-cell').forEach(el => {
+    el.style.border = el.classList.contains('has-wears') ? '1px solid var(--color-sage-green)' : '1px solid var(--color-soft-beige)';
+    if (el.classList.contains('is-today')) {
+      el.style.borderTop = '3px solid var(--color-deep-forest)';
+    }
+  });
+  const activeEl = document.getElementById('cell_' + dateStr);
+  if (activeEl) {
+    activeEl.style.border = '2px solid var(--color-deep-forest)';
+  }
+
+  // Update inspector heading
+  document.getElementById('inspectorDateHeading').textContent = dateStr;
+  
+  // Re-render entries
+  const entries = wornByDateData[dateStr] || [];
+  document.getElementById('inspectorCountLabel').textContent = entries.length + ' confirmed wear records';
+  
+  const container = document.getElementById('inspectorEntriesContainer');
+  if (entries.length > 0) {
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">';
+    entries.forEach(entry => {
+      html += `
+        <div class="iq-card" style="padding: 16px; background-color: #FFFFFF;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <h4 style="margin: 0; font-size: 1.05rem;">${entry.outfit_title}</h4>
+            <form method="POST" action="/outfit-studio/calendar/delete-wear/${entry.id}" onsubmit="return confirm('Remove this wear record from history?')">
+              <button type="submit" style="background: none; border: none; color: var(--color-muted-taupe); cursor: pointer; font-size: 0.85rem;" title="Remove wear record">✕ Remove</button>
+            </form>
+          </div>
+          ${entry.notes ? `<p style="font-size: 0.85rem; font-style: italic; color: var(--color-muted-taupe); margin-bottom: 10px;">"${entry.notes}"</p>` : ''}
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            ${entry.garments.map(g => `
+              <div style="display: flex; align-items: center; gap: 6px; background: #FAF7F2; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--color-soft-beige);">
+                <img src="/static/${g.image}" alt="${g.name}" style="width: 28px; height: 32px; object-fit: cover; border-radius: 2px;" onerror="this.onerror=null; this.src='/static/defaults/top_oxford_shirt.jpg';">
+                <span style="font-size: 0.75rem; color: var(--color-charcoal);">${g.name}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } else {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--color-muted-taupe);">
+        <p style="margin-bottom: 12px; font-size: 0.92rem;">No outfits logged as worn on ${dateStr}.</p>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openMarkWornForSelectedDate()">
+          ✓ Log an Outfit Worn on this Date
+        </button>
+      </div>
+    `;
+  }
+}
+</script>
+{% endblock %}
+

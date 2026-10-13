@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Digital Closet{% endblock %}
+{% block page_title %}Digital Closet{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>The Digital Closet</h1>
+    <p class="page-subtitle">Your central fashion archive. Organise, catalog, and explore every garment you own.</p>
+  </div>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    {% if not items %}
+    <form method="POST" action="{{ url_for('closet.seed_starter_capsule') }}">
+      <button type="submit" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/></svg>
+        Curate Starter Capsule
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('closet.add_item') }}" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      + Add Clothes
+    </a>
+  </div>
+</div>
+
+<!-- CATEGORY TABS -->
+<div style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 6px;">
+  <a href="{{ url_for('closet.index') }}" class="btn {% if active_category == 'All' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" style="border-radius: var(--radius-pill); white-space: nowrap;">
+    All Items <span class="badge badge-sage" style="margin-left: 4px;">{{ counts.All }}</span>
+  </a>
+  {% for cat in categories %}
+  <a href="{{ url_for('closet.index', category=cat) }}" class="btn {% if active_category == cat %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" style="border-radius: var(--radius-pill); white-space: nowrap;">
+    {{ cat }} <span class="badge badge-sage" style="margin-left: 4px;">{{ counts.get(cat, 0) }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- FILTER & SEARCH BAR -->
+<div class="iq-card" style="padding: 16px 20px; margin-bottom: 30px;">
+  <form method="GET" action="{{ url_for('closet.index') }}" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+    {% if active_category and active_category != 'All' %}
+    <input type="hidden" name="category" value="{{ active_category }}">
+    {% endif %}
+    <div style="flex: 2; min-width: 200px;">
+      <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search by name, brand, or style..." class="form-control">
+    </div>
+    <div style="flex: 1; min-width: 140px;">
+      <select name="style" class="form-select" onchange="this.form.submit()">
+        <option value="">All Styles</option>
+        <option value="Casual" {% if request.args.get('style') == 'Casual' %}selected{% endif %}>Casual</option>
+        <option value="Smart Casual" {% if request.args.get('style') == 'Smart Casual' %}selected{% endif %}>Smart Casual</option>
+        <option value="Formal" {% if request.args.get('style') == 'Formal' %}selected{% endif %}>Formal</option>
+        <option value="Minimalist" {% if request.args.get('style') == 'Minimalist' %}selected{% endif %}>Minimalist</option>
+        <option value="Streetwear" {% if request.args.get('style') == 'Streetwear' %}selected{% endif %}>Streetwear</option>
+      </select>
+    </div>
+    <div style="flex: 1; min-width: 140px;">
+      <select name="sort" class="form-select" onchange="this.form.submit()">
+        <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest Added</option>
+        <option value="oldest" {% if active_sort == 'oldest' %}selected{% endif %}>Oldest Added</option>
+        <option value="name" {% if active_sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+        <option value="price_high" {% if active_sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+        <option value="price_low" {% if active_sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    {% if request.args %}
+    <a href="{{ url_for('closet.index') }}" class="btn btn-secondary btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- CLOTHING GRID -->
+{% if items %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px;">
+  {% for item in items %}
+  <div class="iq-card iq-card-hover" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+    <!-- Image with Status Badge -->
+    <div style="position: relative; width: 100%; height: 320px; background-color: #F8F5EE; overflow: hidden;">
+      <img src="{{ url_for('static', filename=item.image_path) }}" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;">
+      <!-- Availability Badge -->
+      <div style="position: absolute; top: 12px; left: 12px;">
+        {% if item.availability_status == 'Available' %}
+        <span class="badge badge-available">● Available</span>
+        {% elif item.availability_status == 'Worn / Needs Washing' %}
+        <span class="badge badge-worn">▲ Needs Wash</span>
+        {% else %}
+        <span class="badge badge-laundry">■ In Laundry</span>
+        {% endif %}
+      </div>
+      <!-- Category Tag -->
+      <div style="position: absolute; top: 12px; right: 12px;">
+        <span class="badge badge-beige" style="background-color: rgba(244, 239, 231, 0.9);">{{ item.category }}</span>
+      </div>
+    </div>
+
+    <!-- Metadata Content -->
+    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background-color: {{ item.color_hex }}; display: inline-block; border: 1px solid rgba(0,0,0,0.15);"></span>
+          <span style="font-size: 0.8rem; color: var(--color-muted-taupe); text-transform: uppercase; letter-spacing: 0.05em;">{{ item.color }}</span>
+          {% if item.subcategory %}
+          <span style="color: var(--color-soft-beige);">•</span>
+          <span style="font-size: 0.8rem; color: var(--color-muted-taupe);">{{ item.subcategory }}</span>
+          {% endif %}
+        </div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 8px;"><a href="{{ url_for('closet.item_detail', item_id=item.id) }}">{{ item.name }}</a></h3>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+          <span class="badge badge-sage">{{ item.style }}</span>
+          <span class="badge badge-beige">{{ item.season }}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--color-soft-beige);">
+        <div>
+          {% if item.purchase_price %}
+          <span style="font-weight: 600; color: var(--color-charcoal); font-size: 0.95rem;">{{ item.purchase_price | inr }}</span>
+          {% else %}
+          <span style="font-size: 0.82rem; color: var(--color-muted-taupe);">No price logged</span>
+          {% endif %}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <a href="{{ url_for('closet.item_detail', item_id=item.id) }}" class="btn btn-secondary btn-sm" title="View details">Details</a>
+          <a href="{{ url_for('closet.edit_item', item_id=item.id) }}" class="btn btn-secondary btn-sm" title="Edit item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+  </div>
+  <h2>Your Closet is Ready</h2>
+  <p>No garments found in this category or search. Upload clothing photos, use device camera, or generate our curated starter capsule to explore right away.</p>
+  <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+    <a href="{{ url_for('closet.add_item') }}" class="btn btn-primary">+ Add New Garment</a>
+    <form method="POST" action="{{ url_for('closet.seed_starter_capsule') }}">
+      <button type="submit" class="btn btn-secondary">Curate Starter Capsule</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

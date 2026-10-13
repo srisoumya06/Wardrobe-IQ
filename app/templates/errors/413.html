@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block page_title %}File Limit Exceeded{% endblock %}
+{% block content %}
+<div class="empty-state" style="margin-top: 40px;">
+  <div class="empty-state-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  </div>
+  <h2>413 — Image Too Large</h2>
+  <p>The uploaded image exceeds the 16MB file size limit. Please choose a smaller photo.</p>
+  <a href="{{ url_for('closet.index') }}" class="btn btn-primary">Back to Closet</a>
+</div>
+{% endblock %}

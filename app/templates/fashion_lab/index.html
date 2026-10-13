@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% block title %}AI Fashion Lab — Wardrobe IQ{% endblock %}
+{% block page_title %}AI Fashion Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>AI Fashion Lab</h1>
+    <p class="page-subtitle">Editorial styling analysis, personalized style preferences, and deep wardrobe intelligence.</p>
+  </div>
+</div>
+
+<!-- 1. OUTFIT PHOTO ANALYSIS -->
+<div class="iq-card" style="padding: 32px; margin-bottom: 36px;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+    <div>
+      <h2>Outfit Photo Analysis & Rating</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Upload a photo of an outfit you are wearing or considering. Our styling model evaluates harmony, proportion, and styling tweaks.</p>
+    </div>
+    <span class="badge badge-sage">Aesthetic Heuristics</span>
+  </div>
+
+  <form id="outfitAnalysisForm" method="POST" action="{{ url_for('fashion_lab.analyze_outfit') }}" enctype="multipart/form-data" style="margin-bottom: 24px;">
+    <!-- Error Alert Box -->
+    <div id="analysisErrorAlert" class="alert alert-danger" style="display: none; margin-bottom: 16px;"></div>
+
+    <!-- Dropzone Area -->
+    <div id="uploadDropzone" style="border: 2px dashed var(--color-soft-beige); border-radius: var(--radius-lg); padding: 32px 20px; text-align: center; background-color: var(--color-surface-subtle); cursor: pointer;" onclick="document.getElementById('outfitPhotoInput').click()">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted-taupe)" stroke-width="1.8" style="margin-bottom: 8px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <h4 style="margin-bottom: 4px;">Upload Outfit Photograph for Analysis</h4>
+      <p class="text-muted" style="font-size: 0.82rem; margin-bottom: 12px;">Full-length or mirror outfit selfie (JPG, PNG, WEBP)</p>
+      <input type="file" id="outfitPhotoInput" name="outfit_photo" accept="image/*" style="display: none;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('outfitPhotoInput').click();">Select Outfit Photo</button>
+    </div>
+
+    <!-- Client-Side Preview & Action Bar -->
+    <div id="photoPreviewContainer" style="display: none; margin-top: 16px; padding: 18px; border: 1px solid var(--color-soft-beige); border-radius: var(--radius-md); background: #FFF; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <img id="clientPhotoPreview" src="" alt="Selected outfit" style="width: 72px; height: 96px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--color-soft-beige);">
+        <div>
+          <div id="previewFileName" style="font-weight: 600; font-size: 0.92rem; color: var(--color-charcoal);"></div>
+          <div id="previewFileSize" style="font-size: 0.8rem; color: var(--color-muted-taupe); margin-top: 2px;"></div>
+          <button type="button" onclick="document.getElementById('outfitPhotoInput').click()" style="background:none; border:none; color:var(--color-deep-forest); font-size:0.8rem; padding:0; cursor:pointer; text-decoration:underline; margin-top:4px;">Change photo</button>
+        </div>
+      </div>
+      <div>
+        <button type="submit" id="analyzeBtn" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Analyse Outfit</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State Bar -->
+    <div id="analysisLoadingState" style="display: none; margin-top: 16px; padding: 24px; border-radius: var(--radius-md); background: #FAF7F2; border: 1px solid var(--color-soft-beige); text-align: center;">
+      <div style="margin: 0 auto 12px; width: 32px; height: 32px; border: 3px solid rgba(44,62,49,0.15); border-top-color: var(--color-deep-forest); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <h4 style="margin-bottom: 4px; color: var(--color-deep-forest);">Analysing Outfit Photo...</h4>
+      <p style="margin: 0; font-size: 0.84rem; color: var(--color-muted-taupe);">Evaluating palette harmony, value contrast, silhouette proportions, and layering aesthetics.</p>
+    </div>
+  </form>
+
+  <!-- ANALYSIS RESULT WRAPPER -->
+  <div id="analysisResultWrapper">
+    {% if analysis %}
+    <div id="analysisResultCard" style="border: 1px solid var(--color-soft-beige); border-radius: var(--radius-lg); padding: 28px; background-color: #FCFAF7; margin-top: 24px;">
+      <!-- Notice Banner -->
+      <div class="alert alert-info" style="margin-bottom: 20px;">
+        <small><strong>Mode:</strong> {{ analysis.service_badge or "Basic Visual Analysis Mode" }} — {{ analysis.service_note }} This score assesses visual color coordination, proportions, and layering harmony — never body shape or personal appearance.</small>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
+        <div>
+          <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-soft-beige); box-shadow: var(--shadow-sm);">
+            <img id="analyzedImagePreview" src="{{ url_for('static', filename=analysis.image_url) }}" alt="Evaluated outfit" style="width: 100%; height: 320px; object-fit: cover;">
+          </div>
+          <div style="text-align: center; margin-top: 16px;">
+            <div style="font-size: 2.4rem; font-weight: 700; color: var(--color-deep-forest); line-height: 1;">
+              <span id="scoreValue">{{ analysis.style_score }}</span><span style="font-size: 1rem; color: var(--color-muted-taupe);">/100</span>
+            </div>
+            <div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--color-muted-taupe); margin-top: 4px;">Styling Harmony Score</div>
+            {% if analysis.score_explanation %}
+            <div id="scoreExplanationBox" style="font-size: 0.75rem; color: var(--color-charcoal); margin-top: 10px; text-align: left; background: #FFF; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--color-soft-beige); line-height: 1.45;">
+              {{ analysis.score_explanation }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div>
+          <div style="margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span class="badge badge-sage" id="dominantToneBadge">{{ analysis.dominant_tone }}</span>
+            <span class="badge badge-beige" id="occasionBadge">{{ analysis.occasion_suitability }}</span>
+            {% if analysis.contrast_level %}
+            <span class="badge badge-forest" id="contrastBadge">{{ analysis.contrast_level }}</span>
+            {% endif %}
+          </div>
+
+          {% if analysis.detected_colors %}
+          <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--color-muted-taupe);">Detected Palette:</span>
+            <div id="paletteSwatches" style="display: flex; gap: 8px;">
+              {% for col in analysis.detected_colors %}
+              <span class="badge badge-beige" style="font-size: 0.78rem;">{{ col }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div style="margin-bottom: 18px;">
+            <h4 style="font-size: 1rem; color: #1F4D33; margin-bottom: 6px;">✓ What Works Well</h4>
+            <ul id="worksWellList" style="padding-left: 20px; font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.6;">
+              {% for item in analysis.works_well %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 18px;">
+            <h4 style="font-size: 1rem; color: #8C5921; margin-bottom: 6px;">▲ Styling Opportunities for Improvement</h4>
+            <ul id="couldImproveList" style="padding-left: 20px; font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.6;">
+              {% for item in analysis.could_improve %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div style="background-color: var(--color-surface); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige); margin-bottom: 16px;">
+            <h4 style="font-size: 0.92rem; margin-bottom: 4px;">💡 Alternative Styling Idea</h4>
+            <p id="alternativeStylingText" style="margin: 0; font-size: 0.85rem; color: var(--color-charcoal);">{{ analysis.alternative_styling }}</p>
+          </div>
+
+          <div>
+            <h4 style="font-size: 0.92rem; margin-bottom: 6px;">Suggested Accessories & Anchors</h4>
+            <div id="accessoriesContainer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+              {% for acc in analysis.suggested_accessories %}
+              <span class="badge badge-beige">{{ acc }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const photoInput = document.getElementById("outfitPhotoInput");
+  const form = document.getElementById("outfitAnalysisForm");
+  const previewContainer = document.getElementById("photoPreviewContainer");
+  const clientPreview = document.getElementById("clientPhotoPreview");
+  const previewFileName = document.getElementById("previewFileName");
+  const previewFileSize = document.getElementById("previewFileSize");
+  const analyzeBtn = document.getElementById("analyzeBtn");
+  const loadingState = document.getElementById("analysisLoadingState");
+  const errorAlert = document.getElementById("analysisErrorAlert");
+  const resultWrapper = document.getElementById("analysisResultWrapper");
+
+  if (!photoInput || !form) return;
+
+  photoInput.addEventListener("change", function(e) {
+    if (this.files && this.files[0]) {
+      const file = this.files[0];
+      errorAlert.style.display = "none";
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        clientPreview.src = evt.target.result;
+        previewFileName.textContent = file.name;
+        previewFileSize.textContent = (file.size / 1024).toFixed(1) + " KB";
+        previewContainer.style.display = "flex";
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  form.addEventListener("submit", function(e) {
+    if (!photoInput.files || !photoInput.files[0]) {
+      e.preventDefault();
+      errorAlert.textContent = "Please select an outfit photo first.";
+      errorAlert.style.display = "block";
+      return;
+    }
+
+    e.preventDefault();
+    errorAlert.style.display = "none";
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span>Analysing...</span>';
+    loadingState.style.display = "block";
+
+    const existingCard = document.getElementById("analysisResultCard");
+    if (existingCard) {
+      existingCard.style.opacity = "0.35";
+    }
+
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to analyze outfit photo.");
+      }
+      return data.analysis;
+    })
+    .then((analysis) => {
+      renderAnalysisResult(analysis);
+      loadingState.style.display = "none";
+      analyzeBtn.disabled = false;
+      analyzeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Analyse Outfit</span>';
+      
+      const newCard = document.getElementById("analysisResultCard");
+      if (newCard) {
+        newCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    })
+    .catch((err) => {
+      loadingState.style.display = "none";
+      analyzeBtn.disabled = false;
+      analyzeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Analyse Outfit</span>';
+      if (existingCard) {
+        existingCard.style.opacity = "1";
+      }
+      errorAlert.textContent = err.message || "An error occurred during outfit evaluation. Please try again.";
+      errorAlert.style.display = "block";
+    });
+  });
+
+  function renderAnalysisResult(analysis) {
+    const swatchesHtml = (analysis.detected_colors || []).map(c => `<span class="badge badge-beige" style="font-size:0.78rem;">${c}</span>`).join(" ");
+    const worksWellHtml = (analysis.works_well || []).map(item => `<li>${item}</li>`).join("");
+    const couldImproveHtml = (analysis.could_improve || []).map(item => `<li>${item}</li>`).join("");
+    const accHtml = (analysis.suggested_accessories || []).map(item => `<span class="badge badge-beige">${item}</span>`).join(" ");
+    const explanationHtml = analysis.score_explanation ? `<div id="scoreExplanationBox" style="font-size:0.75rem; color:var(--color-charcoal); margin-top:10px; text-align:left; background:#FFF; padding:10px 12px; border-radius:6px; border:1px solid var(--color-soft-beige); line-height:1.45;">${analysis.score_explanation}</div>` : "";
+    const contrastBadgeHtml = analysis.contrast_level ? `<span class="badge badge-forest" id="contrastBadge">${analysis.contrast_level}</span>` : "";
+
+    resultWrapper.innerHTML = `
+      <div id="analysisResultCard" style="border: 1px solid var(--color-soft-beige); border-radius: var(--radius-lg); padding: 28px; background-color: #FCFAF7; margin-top: 24px;">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+          <small><strong>Mode:</strong> ${analysis.service_badge || "Basic Visual Analysis Mode"} — ${analysis.service_note} This score assesses visual color coordination, proportions, and layering harmony — never body shape or personal appearance.</small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
+          <div>
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-soft-beige); box-shadow: var(--shadow-sm);">
+              <img id="analyzedImagePreview" src="/static/${analysis.image_url}" alt="Evaluated outfit" style="width: 100%; height: 320px; object-fit: cover;">
+            </div>
+            <div style="text-align: center; margin-top: 16px;">
+              <div style="font-size: 2.4rem; font-weight: 700; color: var(--color-deep-forest); line-height: 1;">
+                <span id="scoreValue">${analysis.style_score}</span><span style="font-size: 1rem; color: var(--color-muted-taupe);">/100</span>
+              </div>
+              <div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--color-muted-taupe); margin-top: 4px;">Styling Harmony Score</div>
+              ${explanationHtml}
+            </div>
+          </div>
+
+          <div>
+            <div style="margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <span class="badge badge-sage" id="dominantToneBadge">${analysis.dominant_tone}</span>
+              <span class="badge badge-beige" id="occasionBadge">${analysis.occasion_suitability}</span>
+              ${contrastBadgeHtml}
+            </div>
+
+            ${analysis.detected_colors ? `
+            <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 0.82rem; font-weight: 600; color: var(--color-muted-taupe);">Detected Palette:</span>
+              <div id="paletteSwatches" style="display: flex; gap: 8px;">
+                ${swatchesHtml}
+              </div>
+            </div>` : ''}
+
+            <div style="margin-bottom: 18px;">
+              <h4 style="font-size: 1rem; color: #1F4D33; margin-bottom: 6px;">✓ What Works Well</h4>
+              <ul id="worksWellList" style="padding-left: 20px; font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.6;">
+                ${worksWellHtml}
+              </ul>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+              <h4 style="font-size: 1rem; color: #8C5921; margin-bottom: 6px;">▲ Styling Opportunities for Improvement</h4>
+              <ul id="couldImproveList" style="padding-left: 20px; font-size: 0.88rem; color: var(--color-charcoal); line-height: 1.6;">
+                ${couldImproveHtml}
+              </ul>
+            </div>
+
+            <div style="background-color: var(--color-surface); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige); margin-bottom: 16px;">
+              <h4 style="font-size: 0.92rem; margin-bottom: 4px;">💡 Alternative Styling Idea</h4>
+              <p id="alternativeStylingText" style="margin: 0; font-size: 0.85rem; color: var(--color-charcoal);">${analysis.alternative_styling}</p>
+            </div>
+
+            <div>
+              <h4 style="font-size: 0.92rem; margin-bottom: 6px;">Suggested Accessories & Anchors</h4>
+              <div id="accessoriesContainer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                ${accHtml}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+});
+</script>
+
+<!-- 2. PERSONAL STYLE GUIDE & PREFERENCES -->
+<div class="iq-card" style="padding: 32px; margin-bottom: 36px;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+    <div>
+      <h2>Personal Style Guide</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Define your style DNA. These preferences guide all outfit generations and shopping advice.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('fashion_lab.update_preferences') }}">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <div class="form-group">
+        <label class="form-label" for="preferred_styles">Preferred Aesthetics</label>
+        <input type="text" id="preferred_styles" name="preferred_styles" class="form-control" value="{{ pref.preferred_styles }}" placeholder="e.g. Minimalist, Smart Casual, Relaxed Chic">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="favourite_colors">Favourite Color Palette</label>
+        <input type="text" id="favourite_colors" name="favourite_colors" class="form-control" value="{{ pref.favourite_colors }}" placeholder="e.g. Warm Ivory, Olive Green, Charcoal">
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <div class="form-group">
+        <label class="form-label" for="gender_preference">Shopping Focus</label>
+        <select id="gender_preference" name="gender_preference" class="form-select">
+          <option value="" {% if not pref.gender_preference %}selected{% endif %}>Auto-Detect from Closet</option>
+          <option value="womens" {% if pref.gender_preference == 'womens' %}selected{% endif %}>Women's / Girls'</option>
+          <option value="mens" {% if pref.gender_preference == 'mens' %}selected{% endif %}>Men's / Boys'</option>
+          <option value="unisex" {% if pref.gender_preference == 'unisex' %}selected{% endif %}>Gender-Neutral / All</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="preferred_fits">Preferred Silhouette / Fit</label>
+        <select id="preferred_fits" name="preferred_fits" class="form-select">
+          <option value="Balanced / Tailored" {% if pref.preferred_fits == 'Balanced / Tailored' %}selected{% endif %}>Balanced / Tailored</option>
+          <option value="Relaxed / Loose" {% if pref.preferred_fits == 'Relaxed / Loose' %}selected{% endif %}>Relaxed / Loose</option>
+          <option value="Slim / Structured" {% if pref.preferred_fits == 'Slim / Structured' %}selected{% endif %}>Slim / Structured</option>
+          <option value="Oversized" {% if pref.preferred_fits == 'Oversized' %}selected{% endif %}>Oversized</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="common_occasions">Primary Daily Occasions</label>
+        <input type="text" id="common_occasions" name="common_occasions" class="form-control" value="{{ pref.common_occasions }}" placeholder="e.g. College, Weekend, Smart Casual">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="comfort_preference">Comfort vs Structure</label>
+        <select id="comfort_preference" name="comfort_preference" class="form-select">
+          <option value="Balanced Style & Comfort" {% if pref.comfort_preference == 'Balanced Style & Comfort' %}selected{% endif %}>Balanced Style & Comfort</option>
+          <option value="High Comfort First" {% if pref.comfort_preference == 'High Comfort First' %}selected{% endif %}>High Comfort First</option>
+          <option value="Sharp Tailoring & Structure" {% if pref.comfort_preference == 'Sharp Tailoring & Structure' %}selected{% endif %}>Sharp Tailoring & Structure</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button type="submit" class="btn btn-primary">Save Personal Style Guide</button>
+    </div>
+  </form>
+</div>
+
+<!-- 3. WARDROBE INTELLIGENCE & GAP AUDIT -->
+<div class="iq-card" style="padding: 32px;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+    <div>
+      <h2>Wardrobe Intelligence Audit</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.88rem;">Automated audit identifying category gaps, seldom-worn pieces, and potential duplicates.</p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+    <!-- Identified Gaps -->
+    <div style="background-color: var(--color-surface-subtle); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--color-soft-beige);">
+      <h4 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--color-deep-forest);">Strategic Wardrobe Gaps</h4>
+      {% for gap in intelligence.gaps %}
+      <div style="font-size: 0.88rem; margin-bottom: 10px; color: var(--color-charcoal); line-height: 1.5;">
+        • {{ gap }}
+      </div>
+      {% endfor %}
+      <a href="{{ url_for('shopping.index') }}" class="btn btn-secondary btn-sm" style="margin-top: 10px;">Check Shopping Companion →</a>
+    </div>
+
+    <!-- Duplicate Alerts -->
+    <div style="background-color: var(--color-surface-subtle); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--color-soft-beige);">
+      <h4 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--color-charcoal);">Duplicate Purchase Guard</h4>
+      {% if intelligence.duplicates %}
+      <p style="font-size: 0.85rem; color: var(--color-muted-taupe); margin-bottom: 10px;">Similar items detected in your closet:</p>
+      {% for dup in intelligence.duplicates %}
+      <div style="font-size: 0.85rem; padding: 8px 12px; background-color: #FFF; border-radius: var(--radius-md); border: 1px solid var(--color-soft-beige); margin-bottom: 8px;">
+        <strong>{{ dup.item_a.name }}</strong> & <strong>{{ dup.item_b.name }}</strong>
+        <div style="font-size: 0.78rem; color: var(--color-muted-taupe); margin-top: 2px;">{{ dup.reason }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="font-size: 0.88rem; color: var(--color-charcoal);">No redundant duplicate purchases detected. Your garments serve distinct roles.</p>
+      {% endif %}
+    </div>
+
+    <!-- Seldom Worn -->
+    <div style="background-color: var(--color-surface-subtle); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--color-soft-beige);">
+      <h4 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--color-charcoal);">Unexplored Garments</h4>
+      {% if intelligence.rarely_worn %}
+      <p style="font-size: 0.85rem; color: var(--color-muted-taupe); margin-bottom: 10px;">These pieces have 0 recorded wears:</p>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        {% for itm in intelligence.rarely_worn %}
+        <a href="{{ url_for('closet.item_detail', item_id=itm.id) }}" class="badge badge-beige" style="text-decoration: none;">
+          {{ itm.name }}
+        </a>
+        {% endfor %}
+      </div>
+      <div style="margin-top: 14px;">
+        <a href="{{ url_for('studio.index') }}" class="btn btn-secondary btn-sm">Style These in Studio →</a>
+      </div>
+      {% else %}
+      <p style="font-size: 0.88rem; color: var(--color-charcoal);">You regularly rotate through your logged collection!</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

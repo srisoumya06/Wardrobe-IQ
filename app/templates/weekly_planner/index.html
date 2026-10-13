@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Outfit Planner — Wardrobe IQ{% endblock %}
+{% block page_title %}Weekly Outfit Planner{% endblock %}
+
+{% block content %}
+<div class="weekly-planner-container" style="max-width: 1200px; margin: 0 auto; padding-bottom: 60px;">
+
+  <!-- 1. EDITORIAL HEADER & COMPLETION WIDGET -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 2rem; margin: 0 0 6px 0; color: var(--color-deep-forest);">Weekly Outfit Planner</h1>
+      <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+        Curate and schedule up to three daily outfit sets across your week directly from your Digital Closet.
+      </p>
+    </div>
+
+    <!-- Weekly Summary Widget -->
+    <div class="iq-card" style="padding: 14px 20px; display: flex; align-items: center; gap: 20px; background-color: #FFFFFF; border: 1px solid var(--color-soft-beige);">
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted-taupe); font-weight: 600;">Weekly Plan Progress</div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 1.45rem; font-weight: 700; color: var(--color-deep-forest);">{{ days_planned_count }}/7</span>
+          <span style="font-size: 0.85rem; color: var(--color-muted-taupe);">Days Planned</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--color-deep-forest); font-weight: 500;">
+          {{ total_outfits_count }} Total Outfit Sets
+        </div>
+      </div>
+      <div style="width: 80px; text-align: center;">
+        <div style="background-color: var(--color-surface-subtle); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; border: 1px solid var(--color-soft-beige);">
+          <div style="background-color: var(--color-deep-forest); height: 100%; width: {{ completion_pct }}%; border-radius: 4px; transition: width 0.3s ease;"></div>
+        </div>
+        <span style="font-size: 0.74rem; font-weight: 600; color: var(--color-muted-taupe);">{{ completion_pct }}% Complete</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. WEEK NAVIGATION CONTROLS -->
+  <div class="iq-card" style="padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background-color: var(--color-surface-subtle); border: 1px solid var(--color-soft-beige);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="{{ url_for('weekly_planner.index', week=prev_week_str) }}" class="btn btn-secondary btn-sm" style="font-weight: 600;" title="View previous week">
+        ← Previous Week
+      </a>
+      {% if not is_current_week %}
+      <a href="{{ url_for('weekly_planner.index', week=current_week_str) }}" class="btn btn-secondary btn-sm" title="Jump to current week">
+        Current Week
+      </a>
+      {% endif %}
+      <a href="{{ url_for('weekly_planner.index', week=next_week_str) }}" class="btn btn-secondary btn-sm" style="font-weight: 600;" title="View next week">
+        Next Week →
+      </a>
+    </div>
+
+    <!-- Active Week Range Heading -->
+    <div style="text-align: center;">
+      <h3 style="margin: 0; font-family: var(--font-serif); font-size: 1.35rem; color: var(--color-deep-forest);">
+        Week of {{ week_heading }}
+      </h3>
+      {% if is_current_week %}
+      <span class="badge badge-sage" style="font-size: 0.70rem; margin-top: 3px;">Active Current Week</span>
+      {% endif %}
+    </div>
+
+    <!-- Clear Plan Action -->
+    <div>
+      {% if total_outfits_count > 0 %}
+      <form method="POST" action="{{ url_for('weekly_planner.clear_week') }}" onsubmit="return confirm('Are you sure you want to clear all planned outfits for this week? ({{ week_heading }})\n\nThis will remove scheduled outfits for this week only. Your Digital Closet, wear history, and other weeks will NOT be affected.');" style="margin: 0;">
+        <input type="hidden" name="week" value="{{ week_str }}">
+        <button type="submit" class="btn btn-secondary btn-sm" style="color: var(--color-terracotta); border-color: rgba(184, 80, 66, 0.3);" title="Clear only this week's planned outfits">
+          🗑️ Clear This Week's Plan
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 3. SEVEN-DAY SELECTOR TABS -->
+  <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 24px;" class="weekly-day-tabs">
+    {% for day in days_data %}
+    <a href="{{ url_for('weekly_planner.index', week=week_str, day=day.day_index) }}" 
+       style="text-decoration: none; color: inherit; display: block;"
+       class="day-tab-link">
+      <div class="iq-card" style="padding: 14px 10px; text-align: center; border-radius: var(--radius-md); transition: all 0.2s ease; {% if day.day_index == selected_day_idx %}border: 2px solid var(--color-deep-forest); background-color: #FFFFFF; box-shadow: var(--shadow-sm);{% else %}border: 1px solid var(--color-soft-beige); background-color: var(--color-surface-subtle); opacity: 0.92;{% endif %}">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: {% if day.day_index == selected_day_idx %}var(--color-deep-forest){% else %}var(--color-muted-taupe){% endif %}; margin-bottom: 4px;">
+          {{ day.name[:3] }}
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: var(--color-charcoal); margin-bottom: 4px;">
+          {{ day.date.day }}
+        </div>
+        
+        <!-- Outfits Count Badge -->
+        <div>
+          {% if day.outfit_count == 0 %}
+          <span class="badge badge-beige" style="font-size: 0.70rem; padding: 2px 6px;">0/3</span>
+          {% elif day.outfit_count == 3 %}
+          <span class="badge badge-sage" style="font-size: 0.70rem; padding: 2px 6px; font-weight: 700;">3/3 Full</span>
+          {% else %}
+          <span class="badge badge-sage" style="font-size: 0.70rem; padding: 2px 6px;">{{ day.outfit_count }}/3</span>
+          {% endif %}
+        </div>
+
+        {% if day.is_today %}
+        <div style="margin-top: 5px;">
+          <span style="font-size: 0.65rem; background-color: var(--color-deep-forest); color: #FFFFFF; padding: 1px 5px; border-radius: 3px; font-weight: 600; text-transform: uppercase;">Today</span>
+        </div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- 4. SELECTED DAY DETAIL STAGE -->
+  <div class="iq-card" style="padding: 28px; background-color: #FFFFFF; border: 1px solid var(--color-soft-beige); margin-bottom: 30px;">
+    
+    <!-- Day Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--color-soft-beige);">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h2 style="margin: 0; font-size: 1.45rem; color: var(--color-deep-forest);">{{ selected_day.date_full }}</h2>
+          {% if selected_day.is_today %}
+          <span class="badge badge-sage">Today</span>
+          {% endif %}
+        </div>
+        <p class="text-muted" style="margin: 4px 0 0 0; font-size: 0.88rem;">
+          {{ selected_day.outfit_count }} of 3 outfit sets planned for {{ selected_day.name }}.
+        </p>
+      </div>
+
+      <!-- Add Outfit Button / Limit Notice -->
+      <div>
+        {% if selected_day.can_add %}
+        <button type="button" class="btn btn-primary btn-sm" onclick="openOutfitModal({{ selected_day.day_index }}, '{{ selected_day.name }}')">
+          + Add Outfit Set ({{ selected_day.outfit_count }}/3)
+        </button>
+        {% else %}
+        <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity: 0.65; cursor: not-allowed;" title="Daily limit of 3 outfits reached">
+          ✓ Daily Limit Reached (3/3 Outfits)
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Limit Explanation Notice when 3 outfits are reached -->
+    {% if selected_day.is_full %}
+    <div class="alert alert-info" style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+      <span>ℹ️</span>
+      <small>
+        You have scheduled the maximum of <strong>3 outfit sets</strong> for {{ selected_day.name }} (e.g. Morning Work, Evening Dinner, Casual). You can edit or remove any outfit set below to adjust your day.
+      </small>
+    </div>
+    {% endif %}
+
+    <!-- Outfits List for Selected Day -->
+    {% if selected_day.outfits %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+      {% for outfit in selected_day.outfits %}
+      <div class="iq-card" style="padding: 20px; background-color: var(--color-surface-subtle); border: 1px solid var(--color-soft-beige); border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+        
+        <div>
+          <!-- Card Top Bar: Slot, Title, Actions -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div>
+              <span class="badge badge-beige" style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase;">
+                Outfit Set {{ outfit.slot_index }}
+              </span>
+              <h4 style="margin: 6px 0 0 0; font-size: 1.15rem; color: var(--color-deep-forest);">
+                {{ outfit.title }}
+              </h4>
+            </div>
+
+            <!-- Edit & Delete Actions -->
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 0.78rem;" onclick="editOutfitModal({{ outfit.id }}, '{{ selected_day.day_index }}', '{{ selected_day.name }}')" title="Edit this outfit">
+                ✏️ Edit
+              </button>
+              
+              <form method="POST" action="{{ url_for('weekly_planner.delete_outfit', outfit_id=outfit.id) }}" onsubmit="return confirm('Remove \'{{ outfit.title|replace('\'', '\\\'') }}\' from your {{ selected_day.name }} plan?');" style="margin: 0;">
+                <button type="submit" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 0.78rem; color: var(--color-terracotta);" title="Delete this outfit">
+                  🗑️
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Notes (if provided) -->
+          {% if outfit.notes %}
+          <p style="font-size: 0.82rem; font-style: italic; color: var(--color-muted-taupe); margin: 0 0 14px 0;">
+            "{{ outfit.notes }}"
+          </p>
+          {% endif %}
+
+          <!-- Garments Visual Grid -->
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 600; color: var(--color-muted-taupe); margin-bottom: 8px;">
+              Selected Pieces ({{ outfit.items|length }}):
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 10px;">
+              {% for garment in outfit.items %}
+              <div style="text-align: center; background-color: #FFFFFF; border: 1px solid var(--color-soft-beige); border-radius: var(--radius-sm); padding: 6px;">
+                <div style="width: 100%; height: 75px; overflow: hidden; border-radius: 3px; background-color: #F8F5EE; margin-bottom: 4px;">
+                  <img src="{{ url_for('static', filename=garment.image_path) }}" alt="{{ garment.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+                </div>
+                <div style="font-size: 0.68rem; font-weight: 600; color: var(--color-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ garment.name }}">
+                  {{ garment.name }}
+                </div>
+                <div style="font-size: 0.62rem; color: var(--color-muted-taupe); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ garment.category }}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <div style="padding-top: 10px; border-top: 1px solid var(--color-soft-beige); display: flex; justify-content: space-between; align-items: center;">
+          <small class="text-muted" style="font-size: 0.72rem;">
+            Scheduled for {{ selected_day.name }}
+          </small>
+          <span style="font-size: 0.72rem; color: var(--color-deep-forest); font-weight: 600;">
+            ✓ {{ outfit.items|length }} Items
+          </span>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State for Selected Day -->
+    <div style="text-align: center; padding: 48px 20px; background-color: var(--color-surface-subtle); border-radius: var(--radius-md); border: 1px dashed var(--color-soft-beige);">
+      <div style="font-size: 2.2rem; margin-bottom: 10px;">📅</div>
+      <h3 style="margin: 0 0 6px 0; font-size: 1.25rem; color: var(--color-deep-forest);">No Outfits Planned for {{ selected_day.name }}</h3>
+      <p class="text-muted" style="margin: 0 auto 18px auto; max-width: 480px; font-size: 0.90rem;">
+        Plan your attire for work, evening outings, or workouts. You can schedule up to three flexible outfit sets using pieces from your Digital Closet.
+      </p>
+      {% if selected_day.can_add %}
+      <button type="button" class="btn btn-primary" onclick="openOutfitModal({{ selected_day.day_index }}, '{{ selected_day.name }}')">
+        + Add Outfit Set for {{ selected_day.name }}
+      </button>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- 5. WEEK-AT-A-GLANCE OVERVIEW SECTION -->
+  <div class="iq-card" style="padding: 28px; background-color: #FFFFFF; border: 1px solid var(--color-soft-beige);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div>
+        <h3 style="margin: 0 0 4px 0; font-size: 1.25rem; color: var(--color-deep-forest);">Weekly Overview At A Glance</h3>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">All planned outfits across Monday through Sunday for quick review.</p>
+      </div>
+      <span class="badge badge-sage">{{ total_outfits_count }} Total Planned</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;">
+      {% for day in days_data %}
+      <div style="background-color: var(--color-surface-subtle); border: 1px solid var(--color-soft-beige); border-radius: var(--radius-sm); padding: 12px; min-height: 140px; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <span style="font-size: 0.80rem; font-weight: 700; color: var(--color-deep-forest);">{{ day.name[:3] }} {{ day.date.day }}</span>
+          <span style="font-size: 0.70rem; color: var(--color-muted-taupe);">{{ day.outfit_count }}/3</span>
+        </div>
+
+        {% if day.outfits %}
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+          {% for o in day.outfits %}
+          <div style="background: #FFFFFF; border: 1px solid var(--color-soft-beige); border-radius: 4px; padding: 6px 8px; font-size: 0.75rem;">
+            <div style="font-weight: 600; color: var(--color-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ o.title }}</div>
+            <div style="font-size: 0.68rem; color: var(--color-muted-taupe);">{{ o.items|length }} items</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-muted-taupe); font-size: 0.75rem; font-style: italic;">
+          Empty
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 8px; text-align: center;">
+          <a href="{{ url_for('weekly_planner.index', week=week_str, day=day.day_index) }}" style="font-size: 0.72rem; color: var(--color-deep-forest); font-weight: 600; text-decoration: none;">
+            View Day →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ================= MODAL: ADD / EDIT PLANNED OUTFIT ================= -->
+<div class="iq-modal-backdrop" id="outfitModalBackdrop">
+  <div class="iq-modal" style="max-width: 900px; width: 95%;">
+    
+    <form method="POST" action="{{ url_for('weekly_planner.save_outfit') }}" id="outfitForm" onsubmit="return validateOutfitSubmission();">
+      <input type="hidden" name="week" value="{{ week_str }}">
+      <input type="hidden" name="day_of_week" id="modalDayOfWeek" value="{{ selected_day_idx }}">
+      <input type="hidden" name="outfit_id" id="modalOutfitId" value="">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div>
+          <h3 id="modalHeading" style="margin: 0; color: var(--color-deep-forest);">Plan Outfit Set</h3>
+          <p class="text-muted" id="modalSubheading" style="margin: 2px 0 0 0; font-size: 0.84rem;">
+            Choose pieces from your Digital Closet. Tops, bottoms, dresses, footwear, and accessories are all optional and flexible.
+          </p>
+        </div>
+        <button type="button" onclick="closeOutfitModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--color-charcoal);">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" style="max-height: 65vh; overflow-y: auto; padding: 20px;">
+        
+        <!-- Outfit Details Row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="outfitTitleInput" style="font-weight: 600; font-size: 0.85rem;">Outfit Label / Title</label>
+            <input type="text" id="outfitTitleInput" name="title" class="form-control" placeholder="e.g. Work Look, Casual Day, Evening Dinner" maxlength="128">
+            <small class="text-muted" style="font-size: 0.72rem;">Optional. Defaults to "Look 1", "Look 2", etc.</small>
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="outfitNotesInput" style="font-weight: 600; font-size: 0.85rem;">Outfit Notes</label>
+            <input type="text" id="outfitNotesInput" name="notes" class="form-control" placeholder="e.g. Wear with minimal silver watch" maxlength="256">
+            <small class="text-muted" style="font-size: 0.72rem;">Optional styling notes for this specific outfit set.</small>
+          </div>
+        </div>
+
+        <!-- Sticky Selection Indicator Banner -->
+        <div style="background-color: var(--color-surface-subtle); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-soft-beige); margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 0.84rem; font-weight: 600; color: var(--color-deep-forest);">Selected:</span>
+            <span class="badge badge-sage" id="selectedCountBadge" style="font-size: 0.82rem;">0 Items</span>
+          </div>
+
+          <!-- Selection instruction -->
+          <small class="text-muted" style="font-size: 0.76rem;">
+            Flexible selection: choose dresses, tops + bottoms, or any sensible combination.
+          </small>
+        </div>
+
+        <!-- Search & Category Filters -->
+        <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+          <!-- Category Tabs -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="categoryFilterBar">
+            <button type="button" class="btn btn-primary btn-sm category-filter-btn" data-category="ALL" onclick="filterItemsByCategory('ALL')">
+              All ({{ total_items_count }})
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm category-filter-btn" data-category="Tops" onclick="filterItemsByCategory('Tops')">
+              Tops ({{ closet_by_category['Tops']|length }})
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm category-filter-btn" data-category="Bottoms" onclick="filterItemsByCategory('Bottoms')">
+              Bottoms ({{ closet_by_category['Bottoms']|length }})
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm category-filter-btn" data-category="Dresses / One-piece" onclick="filterItemsByCategory('Dresses / One-piece')">
+              Dresses ({{ closet_by_category['Dresses / One-piece']|length }})
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm category-filter-btn" data-category="Footwear" onclick="filterItemsByCategory('Footwear')">
+              Footwear ({{ closet_by_category['Footwear']|length }})
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm category-filter-btn" data-category="Accessories" onclick="filterItemsByCategory('Accessories')">
+              Accessories ({{ closet_by_category['Accessories']|length }})
+            </button>
+          </div>
+
+          <!-- Quick Text Filter -->
+          <div style="min-width: 200px;">
+            <input type="text" id="itemSearchInput" class="form-control form-control-sm" placeholder="🔍 Search by name, color..." oninput="filterItemsBySearch(this.value)">
+          </div>
+        </div>
+
+        <!-- Garment Grid (populated from user's Digital Closet) -->
+        {% if user_items %}
+        <div id="closetItemsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          {% for item in user_items %}
+          <div class="wardrobe-picker-card" 
+               id="itemCard_{{ item.id }}" 
+               data-id="{{ item.id }}" 
+               data-category="{{ item.category }}" 
+               data-name="{{ item.name|lower }}" 
+               data-color="{{ item.color|lower }}"
+               onclick="toggleItemSelection({{ item.id }})"
+               style="border: 2px solid var(--color-soft-beige); border-radius: var(--radius-md); padding: 8px; cursor: pointer; text-align: center; background-color: #FFFFFF; transition: all 0.18s ease; position: relative;">
+            
+            <!-- Checkbox Indicator -->
+            <input type="checkbox" name="item_ids" value="{{ item.id }}" id="chkItem_{{ item.id }}" style="position: absolute; top: 10px; right: 10px; z-index: 2; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-deep-forest);" onchange="updateItemCardState({{ item.id }})">
+
+            <!-- Item Thumbnail -->
+            <div style="width: 100%; height: 110px; border-radius: 4px; overflow: hidden; background-color: #FAF7F2; margin-bottom: 6px;">
+              <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{{ url_for('static', filename='defaults/top_oxford_shirt.jpg') }}';">
+            </div>
+
+            <!-- Item Name -->
+            <div style="font-weight: 600; font-size: 0.78rem; color: var(--color-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.name }}">
+              {{ item.name }}
+            </div>
+
+            <!-- Category & Color -->
+            <div style="font-size: 0.68rem; color: var(--color-muted-taupe); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ item.category }} • {{ item.color }}
+            </div>
+
+            <!-- Availability Status Badge -->
+            {% if not item.is_available %}
+            <div style="margin-top: 4px;">
+              <span class="badge" style="background-color: #FFF3CD; color: #856404; font-size: 0.62rem; padding: 2px 4px; border: 1px solid #FFEEBA;" title="This item is currently {{ item.availability_status }}">
+                ⚠️ {{ item.availability_status }}
+              </span>
+            </div>
+            {% endif %}
+
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 30px; background-color: var(--color-surface-subtle); border-radius: 6px;">
+          <p class="text-muted" style="margin: 0;">No items found in your Digital Closet yet. Please add items to your closet first.</p>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" onclick="closeOutfitModal()">Cancel</button>
+        
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="footerSelectedNotice" style="font-size: 0.82rem; color: var(--color-muted-taupe);">0 items selected</span>
+          <button type="submit" class="btn btn-primary" id="btnSaveOutfit" style="font-weight: 600;">
+            ✓ Save Outfit Set
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+// State management
+let activeCategoryFilter = 'ALL';
+let activeSearchQuery = '';
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function openOutfitModal(dayIndex, dayName) {
+  document.getElementById('modalDayOfWeek').value = dayIndex;
+  document.getElementById('modalOutfitId').value = '';
+  document.getElementById('modalHeading').textContent = 'Plan Outfit Set for ' + dayName;
+  document.getElementById('modalSubheading').textContent = 'Select any combination of garments and accessories from your closet for ' + dayName + '.';
+  document.getElementById('outfitTitleInput').value = '';
+  document.getElementById('outfitNotesInput').value = '';
+  
+  // Uncheck all items
+  document.querySelectorAll('input[name="item_ids"]').forEach(chk => {
+    chk.checked = false;
+    updateItemCardState(chk.value);
+  });
+
+  // Reset filters
+  filterItemsByCategory('ALL');
+  document.getElementById('itemSearchInput').value = '';
+  activeSearchQuery = '';
+
+  refreshSelectedCounters();
+  document.getElementById('outfitModalBackdrop').classList.add('active');
+}
+
+function closeOutfitModal() {
+  document.getElementById('outfitModalBackdrop').classList.remove('active');
+}
+
+async function editOutfitModal(outfitId, dayIndex, dayName) {
+  try {
+    const res = await fetch('/weekly-planner/outfit/' + outfitId);
+    const data = await res.json();
+    if (!data.success) {
+      alert('Could not load outfit data.');
+      return;
+    }
+
+    document.getElementById('modalDayOfWeek').value = dayIndex;
+    document.getElementById('modalOutfitId').value = outfitId;
+    document.getElementById('modalHeading').textContent = 'Edit ' + (data.title || 'Outfit Set') + ' (' + dayName + ')';
+    document.getElementById('modalSubheading').textContent = 'Modify item selections or title for this outfit set.';
+    document.getElementById('outfitTitleInput').value = data.title || '';
+    document.getElementById('outfitNotesInput').value = data.notes || '';
+
+    // Check matching items
+    const selectedItemIds = new Set(data.item_ids || []);
+    document.querySelectorAll('input[name="item_ids"]').forEach(chk => {
+      chk.checked = selectedItemIds.has(parseInt(chk.value));
+      updateItemCardState(chk.value);
+    });
+
+    filterItemsByCategory('ALL');
+    document.getElementById('itemSearchInput').value = '';
+    activeSearchQuery = '';
+
+    refreshSelectedCounters();
+    document.getElementById('outfitModalBackdrop').classList.add('active');
+  } catch (err) {
+    alert('Failed to fetch outfit details.');
+  }
+}
+
+function toggleItemSelection(itemId) {
+  const chk = document.getElementById('chkItem_' + itemId);
+  if (chk) {
+    chk.checked = !chk.checked;
+    updateItemCardState(itemId);
+    refreshSelectedCounters();
+  }
+}
+
+function updateItemCardState(itemId) {
+  const card = document.getElementById('itemCard_' + itemId);
+  const chk = document.getElementById('chkItem_' + itemId);
+  if (card && chk) {
+    if (chk.checked) {
+      card.style.borderColor = 'var(--color-deep-forest)';
+      card.style.backgroundColor = '#F4EFE7';
+      card.style.boxShadow = '0 2px 8px rgba(52, 72, 59, 0.15)';
+    } else {
+      card.style.borderColor = 'var(--color-soft-beige)';
+      card.style.backgroundColor = '#FFFFFF';
+      card.style.boxShadow = 'none';
+    }
+  }
+}
+
+function refreshSelectedCounters() {
+  const checked = document.querySelectorAll('input[name="item_ids"]:checked');
+  const count = checked.length;
+  
+  const badge = document.getElementById('selectedCountBadge');
+  if (badge) badge.textContent = count + ' Item' + (count === 1 ? '' : 's');
+
+  const footerNotice = document.getElementById('footerSelectedNotice');
+  if (footerNotice) footerNotice.textContent = count + ' item' + (count === 1 ? '' : 's') + ' selected';
+}
+
+function filterItemsByCategory(category) {
+  activeCategoryFilter = category;
+  
+  // Update button active state
+  document.querySelectorAll('.category-filter-btn').forEach(btn => {
+    if (btn.getAttribute('data-category') === category) {
+      btn.className = 'btn btn-primary btn-sm category-filter-btn';
+    } else {
+      btn.className = 'btn btn-secondary btn-sm category-filter-btn';
+    }
+  });
+
+  applyFilters();
+}
+
+function filterItemsBySearch(query) {
+  activeSearchQuery = (query || '').toLowerCase().trim();
+  applyFilters();
+}
+
+function applyFilters() {
+  document.querySelectorAll('.wardrobe-picker-card').forEach(card => {
+    const cardCategory = card.getAttribute('data-category') || '';
+    const cardName = card.getAttribute('data-name') || '';
+    const cardColor = card.getAttribute('data-color') || '';
+
+    const matchesCategory = (activeCategoryFilter === 'ALL' || cardCategory === activeCategoryFilter);
+    const matchesSearch = (!activeSearchQuery || cardName.includes(activeSearchQuery) || cardColor.includes(activeSearchQuery));
+
+    if (matchesCategory && matchesSearch) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function validateOutfitSubmission() {
+  const checked = document.querySelectorAll('input[name="item_ids"]:checked');
+  if (checked.length === 0) {
+    alert('Please select at least one garment or accessory to plan this outfit.');
+    return false;
+  }
+  return true;
+}
+</script>
+{% endblock %}
