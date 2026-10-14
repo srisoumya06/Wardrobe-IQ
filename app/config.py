@@ -13,10 +13,13 @@ class Config:
     
     # Ensure absolute sqlite path with forward slashes
     default_db = (INSTANCE_DIR / "wardrobe_iq.db").as_posix()
-    raw_db_url = os.getenv("DATABASE_URL", "")
+    raw_db_url = os.getenv("DATABASE_URL", "").strip()
     if not raw_db_url or "instance" in raw_db_url:
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{default_db}"
     else:
+        # Render / Heroku compatibility: SQLAlchemy 1.4+ requires postgresql:// instead of postgres://
+        if raw_db_url.startswith("postgres://"):
+            raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
         SQLALCHEMY_DATABASE_URI = raw_db_url
         
     SQLALCHEMY_TRACK_MODIFICATIONS = False
